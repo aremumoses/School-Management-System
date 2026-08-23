@@ -1,0 +1,402 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens below come from prompts/00-DESIGN-SYSTEM.md — do not
+ * hardcode a hex value or font size anywhere else in the app; extend this
+ * file (and the @theme block) instead so every screen stays consistent.
+ *
+ * Token mapping notes (§2 of the design system -> shadcn/ui slot names):
+ * - --primary / --secondary / --destructive map directly to the design
+ *   system's "primary" / "secondary" / "error" colors.
+ * - shadcn's own --secondary and --accent are *structural* slots (low-
+ *   emphasis button, hover background) and are intentionally kept neutral
+ *   here, NOT colored with the design system's brand accent — using brand
+ *   colors for "Cancel" buttons or every hover state would be too loud. The
+ *   brand accent is instead exposed as --brand-accent below, plus the chart
+ *   palette, for places that specifically call for them (§6, §2 table).
+ * - --success / --warning / --info / --brand-accent are custom additions
+ *   (not part of shadcn's default theme) for icons/charts/borders and
+ *   highlighted CTAs per §2 and §6.
+ * - --success-soft / --warning-soft / --error-soft / --info-soft (+ their
+ *   -foreground pairs) are the verified badge color pairs from §2 — do NOT
+ *   build a badge from e.g. `bg-success/10 text-success`; that combination
+ *   fails WCAG AA for these hues (as low as 2.9:1) despite looking like it
+ *   should work. Use the *-soft pairs for every status badge/pill instead.
+ * - --chart-1..5 are the validated categorical series palette (§7). Both
+ *   modes were run through the data-viz validator (lightness band, chroma
+ *   floor, adjacent-pair CVD separation, normal-vision floor, contrast) —
+ *   do not hand-edit a single slot without re-validating the whole set, and
+ *   do not reorder them: the ordering IS the colorblind-safety mechanism.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Custom status + brand tokens. --success/--warning/--info are mid-tone
+     (icons, chart lines, borders) — NOT for badges, see note above. */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  /* Verified badge pairs — use these for every status badge/pill. */
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-error-soft: var(--error-soft);
+  --color-error-soft-foreground: var(--error-soft-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  /* Decorative KPI-tile tints (StatCard), NOT status badges. */
+  --color-stat-violet: var(--stat-violet);
+  --color-stat-violet-foreground: var(--stat-violet-foreground);
+  --color-stat-blue: var(--stat-blue);
+  --color-stat-blue-foreground: var(--stat-blue-foreground);
+  --color-stat-orange: var(--stat-orange);
+  --color-stat-orange-foreground: var(--stat-orange-foreground);
+  --color-stat-emerald: var(--stat-emerald);
+  --color-stat-emerald-foreground: var(--stat-emerald-foreground);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Elevation, §4. A five-step scale tuned for a light UI: shadows are
+     tinted with the page's own cool ink rather than pure black, which is
+     what keeps them reading as "soft depth" instead of a grey smudge. Both
+     modes redefine --shadow-tint below, so `shadow-md` is correct in dark
+     mode without any dark: variant at the call site. */
+  --shadow-xs: 0 1px 2px 0 var(--shadow-tint-weak);
+  --shadow-sm: 0 1px 3px 0 var(--shadow-tint-weak), 0 1px 2px -1px var(--shadow-tint-weak);
+  --shadow-md: 0 4px 12px -2px var(--shadow-tint), 0 2px 6px -3px var(--shadow-tint-weak);
+  --shadow-lg: 0 12px 28px -8px var(--shadow-tint-strong), 0 4px 10px -4px var(--shadow-tint-weak);
+  --shadow-xl: 0 24px 48px -12px var(--shadow-tint-strong), 0 8px 16px -8px var(--shadow-tint);
+
+  /* Motion, §12. Fast and subtle — nothing in this product should feel like
+     it is performing for the user. Every transition uses one of these. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+}
+
+:root {
+  /* Design system §2 — light mode.
+     Neutrals carry a slight cool (blue-violet) cast so they sit under the
+     brand hue rather than fighting it. */
+  --background: #f6f7fb;
+  --foreground: #0e1220;
+  --card: #ffffff;
+  --card-foreground: #0e1220;
+  --popover: #ffffff;
+  --popover-foreground: #0e1220;
+
+  /* Deep indigo-violet, §2. Deeper than a mid violet on purpose: 7.6:1 on
+     white, so primary-coloured text and icons pass AA without a second
+     "text" variant of the brand color. */
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+
+  /* Neutral structural slot (low-emphasis buttons) — see note above. */
+  --secondary: #f1f3f9;
+  --secondary-foreground: #0e1220;
+
+  --muted: #f1f3f9;
+  --muted-foreground: #58617a; /* 5.9:1 on --card */
+
+  /* Neutral structural slot (hover backgrounds) — see note above. */
+  --accent: #eef0f7;
+  --accent-foreground: #0e1220;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --border: #e6e8f0;
+  --input: #dcdfea;
+  --ring: #6d28d9;
+
+  --radius: 0.75rem; /* 12px -> rounded-lg, per §4 */
+
+  --shadow-tint-weak: rgb(16 20 40 / 0.04);
+  --shadow-tint: rgb(16 20 40 / 0.07);
+  --shadow-tint-strong: rgb(16 20 40 / 0.1);
+
+  /* Status colors, §2 — mid-tone, for icons/charts/borders only. */
+  --success: #16a34a;
+  --warning: #d97706;
+  --info: #0284c7;
+
+  /* Verified badge color pairs, §2 ("Badge color pairs" table). */
+  --success-soft: #dcfce7;
+  --success-soft-foreground: #166534;
+  --warning-soft: #fef3c7;
+  --warning-soft-foreground: #92400e;
+  --error-soft: #fee2e2;
+  --error-soft-foreground: #991b1b;
+  --info-soft: #e0f2fe;
+  --info-soft-foreground: #075985;
+
+  /* Decorative KPI-tile tints, §2/§6 — StatCard only, never a status badge
+     (those keep using the *-soft pairs above, unchanged). */
+  --stat-violet: #ede9fe;
+  --stat-violet-foreground: #5b21b6;
+  --stat-blue: #dbeafe;
+  --stat-blue-foreground: #1d4ed8;
+  --stat-orange: #ffedd5;
+  --stat-orange-foreground: #c2410c;
+  --stat-emerald: #d1fae5;
+  --stat-emerald-foreground: #047857;
+
+  /* Bold brand accent for high-attention CTAs, §2 — distinct from the
+     neutral structural --accent slot above. */
+  --brand-accent: #f59e0b;
+  --brand-accent-foreground: #0e1220; /* dark text for AA contrast on amber */
+
+  /* Categorical series palette, §7 — validated, see the header note.
+     Order: violet (brand) → sky → emerald → orange → pink. */
+  --chart-1: #6d28d9;
+  --chart-2: #0ea5e9;
+  --chart-3: #10b981;
+  --chart-4: #ea7c0b;
+  --chart-5: #ec4899;
+
+  /* App sidebar, §5 — a light surface that reads as part of the page shell,
+     with a tinted pill (not a fill) marking the active item. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3b4459;
+  --sidebar-primary: #ede9fe; /* active nav pill */
+  --sidebar-primary-foreground: #5b21b6;
+  --sidebar-accent: #f4f5fa; /* hover within sidebar */
+  --sidebar-accent-foreground: #0e1220;
+  --sidebar-border: #e9ebf2;
+  --sidebar-ring: #6d28d9;
+}
+
+.dark {
+  /* §11 — dark mode is a *selected* palette, not an inversion: deep, slightly
+     blue charcoal ground, a distinctly lighter card plane above it, and
+     borders that separate by luminance rather than by a hard line. */
+  --background: #0b0e17;
+  --foreground: #e9ecf5;
+  --card: #141926;
+  --card-foreground: #e9ecf5;
+  --popover: #171d2c;
+  --popover-foreground: #e9ecf5;
+
+  --primary: #8b5cf6; /* lifted for legibility on a dark ground */
+  --primary-foreground: #ffffff;
+
+  --secondary: #232a3b;
+  --secondary-foreground: #e9ecf5;
+
+  --muted: #1c2233;
+  --muted-foreground: #98a2b8; /* 6.2:1 on --card */
+
+  --accent: #232a3b;
+  --accent-foreground: #e9ecf5;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #262d40;
+  --input: #2d3547;
+  --ring: #8b5cf6;
+
+  /* Dark surfaces get depth from a darker, wider shadow — the light-mode
+     tints would be invisible against #0b0e17. */
+  --shadow-tint-weak: rgb(0 0 0 / 0.24);
+  --shadow-tint: rgb(0 0 0 / 0.36);
+  --shadow-tint-strong: rgb(0 0 0 / 0.48);
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #38bdf8;
+
+  /* Verified dark-mode badge pairs (light text on a deep tinted bg). */
+  --success-soft: #0a2e1a;
+  --success-soft-foreground: #86efac;
+  --warning-soft: #3a2206;
+  --warning-soft-foreground: #fcd34d;
+  --error-soft: #3d1112;
+  --error-soft-foreground: #fca5a5;
+  --info-soft: #0b2c42;
+  --info-soft-foreground: #7dd3fc;
+
+  /* Decorative KPI-tile tints, dark-mode pairs. */
+  --stat-violet: #241a4d;
+  --stat-violet-foreground: #c4b5fd;
+  --stat-blue: #12233f;
+  --stat-blue-foreground: #93c5fd;
+  --stat-orange: #33200f;
+  --stat-orange-foreground: #fdba74;
+  --stat-emerald: #0c2b23;
+  --stat-emerald-foreground: #6ee7b7;
+
+  --brand-accent: #fbbf24;
+  --brand-accent-foreground: #0e1220;
+
+  /* Same five hues, re-stepped for the dark card surface and re-validated
+     as a set — NOT the light values dimmed. */
+  --chart-1: #8b5cf6;
+  --chart-2: #1e90d0;
+  --chart-3: #0d9668;
+  --chart-4: #c2740a;
+  --chart-5: #d9508e;
+
+  /* Dark mode keeps the sidebar flush with the page ground (a light sidebar
+     would glare against a dark page) and separates it with a border only. */
+  --sidebar: #0d1119;
+  --sidebar-foreground: #b6bed1;
+  --sidebar-primary: #241a4d; /* active nav pill */
+  --sidebar-primary-foreground: #c4b5fd;
+  --sidebar-accent: #171d2c;
+  --sidebar-accent-foreground: #f4f6fb;
+  --sidebar-border: #1e2534;
+  --sidebar-ring: #8b5cf6;
+}
+
+@layer base {
+  /* outline-ring/50 keeps the *browser's own* default focus outline — the
+     one bare links and other unstyled focusables fall back on — in the
+     brand ring color, so §14's "one focus treatment" holds even for
+     elements no component wraps. Styled components layer their own
+     focus-visible:ring on top; don't add a second global outline rule here
+     or every button gets a doubled halo. */
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Inter ships stylistic alternates that make it read considerably less
+       "default Tailwind": ss03 gives the single-storey a-less italics and
+       cv11 the disambiguated 1/l/I. Costs nothing, applied globally. */
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: normal;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Headings carry slightly tight tracking; this is what separates a
+     "premium" type ramp from a default one at display sizes (§3). */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.018em;
+  }
+
+  /* Tabular figures everywhere a number is compared down a column — the
+     .tabular-nums utility is still used at call sites, this just makes the
+     default correct for tables. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* §12 — honour the OS "reduce motion" setting globally rather than
+     per-component, so no future animation can miss it. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Shared entrance for dashboard content — a very short, very small rise.
+     Applied by the app shell to <main>, so every page gets it for free and
+     no page has to remember to animate itself. */
+  .animate-page-in {
+    animation: page-in var(--duration-slow) var(--ease-out-soft) both;
+  }
+
+  /* Skeleton shimmer (§10). A sweeping highlight rather than a pulsing
+     opacity — reads as "loading" instead of "broken". Attached to the
+     component's data-slot rather than exposed as a utility class, so every
+     Skeleton gets it and no call site has to opt in. */
+  [data-slot='skeleton'] {
+    position: relative;
+    overflow: hidden;
+  }
+
+  [data-slot='skeleton']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--color-foreground) 14%,
+      transparent 32%
+    );
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s var(--ease-in-out-soft) infinite;
+    opacity: 0.07;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}

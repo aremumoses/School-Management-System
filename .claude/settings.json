@@ -1,0 +1,11 @@
+{
+  "permissions": {
+   "allow": [
+      "Bash(*)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
+
+    ]
+  }
+}

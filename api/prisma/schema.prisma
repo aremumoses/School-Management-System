@@ -1,0 +1,3440 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Using the classic "prisma-client-js" generator (not the newer ESM-flavored
+// "prisma-client" generator) — it outputs plain CommonJS to node_modules,
+// which avoids `import.meta` interop issues with ts-jest in this CJS NestJS
+// project.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// No `url` here — Prisma 7 requires connections to go through a driver
+// adapter passed to the PrismaClient constructor instead (see PrismaService).
+// prisma.config.ts's datasource.url is for the CLI (migrate/studio) only.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// Staff-only roles — see docs/03-roles-and-permissions.md §1. Student and
+// Guardian are not "roles" here; they're separate user types (see UserType)
+// with their own tables, since a student/guardian's access is scoped to
+// their own record rather than a school-wide permission set.
+enum Role {
+  ADMIN
+  VICE_PRINCIPAL
+  HOD
+  CLASS_TEACHER
+  SUBJECT_TEACHER
+  EXAM_OFFICER
+  BURSAR
+  LIBRARIAN
+  HOSTEL_WARDEN
+  TRANSPORT_OFFICER
+  HR_OFFICER
+  FRONT_DESK
+}
+
+// Discriminates which table a JWT's `sub` (user id) refers to, and who
+// performed an AuditLog-ed action. SYSTEM is for actions with no human
+// actor (e.g. a scheduled job), not used for login.
+enum UserType {
+  STAFF
+  GUARDIAN
+  STUDENT
+  SYSTEM
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PROMOTED
+  REPEATED
+  TRANSFERRED
+  WITHDRAWN
+  GRADUATED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  ON_LEAVE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+// The per-(arm,term) result-workflow state — docs/14-module-academic-results.md
+// §7. Advanced only by explicit staff actions in ResultsService, never
+// inferred/skipped, so "current stage" is always something real that
+// happened, not a guess derived from scattered flags.
+enum ResultStage {
+  SCORES_IN_PROGRESS
+  PENDING_COLLATION
+  PENDING_APPROVAL
+  RETURNED
+  APPROVED
+  PUBLISHED
+}
+
+enum ConductDomain {
+  AFFECTIVE
+  PSYCHOMOTOR
+}
+
+// docs/15-module-fees-payments.md §1.
+enum FeeComponentType {
+  RECURRING
+  ONE_OFF
+  CONDITIONAL
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+// PAYSTACK covers every online-gateway payment for now (docs §4 mentions
+// Flutterwave/Remita too, but only Paystack is wired up this stage) —
+// reports group it under "online" display-side; CASH/BANK_TRANSFER/POS are
+// Bursar-recorded manual payments.
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  POS
+  PAYSTACK
+}
+
+// A checkout-initiated Paystack transaction, before the webhook confirms
+// it — kept separate from Payment (the confirmed fact) so a never-completed
+// checkout attempt doesn't look like money that was actually received.
+enum TransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+}
+
+// docs/16-module-communication.md §1. WHATSAPP was added in Stage 28
+// (WhatsAppProviderService, a Termii WhatsApp BSP wrapper) — USSD remains a
+// separate Phase-3 front door (UssdSessionController) that reads existing
+// data directly rather than routing through this broadcast/channel system
+// at all, since a USSD session isn't a "notification" the school pushes,
+// it's a parent dialing in to pull data. IN_APP is synthetic — every
+// broadcast recipient gets an IN_APP BroadcastRecipient row regardless of
+// requested channels (docs §1: "In-app notification — default for any
+// logged-in user"), which is what the "read" status in delivery-status
+// tracks.
+enum NotificationChannel {
+  SMS
+  EMAIL
+  PUSH
+  IN_APP
+  WHATSAPP
+}
+
+// Mirrors docs §7's three-stage delivery signal (sent -> delivered -> read),
+// plus FAILED for a provider rejecting/erroring on the attempt. Not every
+// channel can reach every later stage: SMS/EMAIL stop at SENT in this build
+// (Termii/Resend delivery-receipt webhooks aren't wired up — see
+// SmsService/EmailService), IN_APP jumps straight from SENT to READ once
+// the recipient views it (no separate "delivered" concept for something
+// that's just a database row).
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+// docs §3 — collapses the doc's richer targeting list (whole school, class,
+// subject's students, individual student/parent/staff, all staff, all
+// parents, specific role) onto the 4 values the broadcast endpoint actually
+// accepts: CLASS targets one Arm (targetId), ROLE targets staff holding a
+// specific Role (targetId set) or every staff member (targetId omitted —
+// covers the doc's separate "all staff"), INDIVIDUAL targets one specific
+// recipient (targetId + targetRecipientType), WHOLE_SCHOOL targets every
+// guardian, every staff member, and every student with a portal account —
+// no targetId needed.
+enum BroadcastTargetType {
+  CLASS
+  ROLE
+  INDIVIDUAL
+  WHOLE_SCHOOL
+}
+
+enum RecipientType {
+  GUARDIAN
+  STUDENT
+  STAFF
+}
+
+// docs/19-unique-differentiators.md §6 / docs/16-module-communication.md §5
+// — the four escalation points the fee-reminder cron checks per invoice.
+// Stored (not derived on the fly) so FeeReminderLog's uniqueness constraint
+// can guarantee each one fires at most once per invoice, even if the cron
+// is re-run manually or catches up after downtime.
+enum FeeReminderThreshold {
+  T_MINUS_7
+  T_MINUS_3
+  DUE_DATE
+  T_PLUS_3
+}
+
+// docs/02-feature-list.md §17.
+enum IncidentSeverity {
+  MINOR
+  MODERATE
+  SEVERE
+}
+
+enum DisciplinaryActionType {
+  WARNING
+  SUSPENSION
+  EXPULSION
+}
+
+// PROPOSED -> APPROVED is automatic for WARNING (no sign-off needed —
+// DisciplineService sets it at creation, see model comment) and requires an
+// explicit ADMIN decision for SUSPENSION/EXPULSION per
+// docs/03-roles-and-permissions.md §2 "Discipline" row. REJECTED is the
+// other terminal state for a proposal an Admin declines to finalize.
+enum DisciplinaryActionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+enum EventRsvpResponse {
+  YES
+  NO
+  MAYBE
+}
+
+enum DocumentType {
+  TESTIMONIAL
+  CERTIFICATE
+}
+
+// DRAFT is the only state before an ADMIN approves it — the PDF itself
+// isn't even generated until approval (see GeneratedDocument's comment),
+// so there's nothing to download regardless of any other check.
+enum DocumentStatus {
+  DRAFT
+  APPROVED
+}
+
+// Admissions pipeline (docs/02-feature-list.md §2, docs/04-dashboard-school-admin.md §2).
+// Status is deliberately open-ended — P2 features (entrance exam, shortlisting,
+// waitlist) will slot in between SUBMITTED/UNDER_REVIEW without a breaking migration.
+enum ApplicantStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+// Mirrors TransactionStatus for invoice payments but lives in its own table
+// because an admissions fee has no Invoice yet (the student doesn't exist).
+enum AdmissionFeeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ExpenseCategory {
+  SALARIES
+  UTILITIES
+  MAINTENANCE
+  SUPPLIES
+  OTHER
+}
+
+// docs/05-dashboard-teacher.md §7 — the four resource shapes the spec names.
+enum ResourceType {
+  NOTE
+  SLIDES
+  PAST_QUESTION
+  VIDEO_LINK
+}
+
+// docs/07-dashboard-parent.md §6 — the consent-slip categories the spec names.
+enum ConsentFormType {
+  EXCURSION
+  MEDICAL
+  PHOTO_VIDEO
+  OTHER
+}
+
+enum ConsentResponseValue {
+  CONSENTED
+  DECLINED
+}
+
+// docs/13-dashboard-front-desk-security.md §2-3 — a pass either matched the
+// authorized list (ISSUED) or needs Admin sign-off first (ESCALATED);
+// REJECTED is the Admin declining an escalated one.
+enum GatePassStatus {
+  ISSUED
+  ESCALATED
+  REJECTED
+}
+
+enum FacilityIncidentType {
+  UNAUTHORIZED_ENTRY
+  ALTERCATION
+  LOST_ITEM
+  OTHER
+}
+
+enum AssetDirection {
+  OUT
+  IN
+}
+
+// docs/13 §2 sample workflow — the parent-side "calls ahead" record front
+// desk converts into a GatePass on arrival.
+enum PickupRequestStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// docs/17-module-cbt-examination.md §1.
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionType {
+  MCQ_SINGLE
+  MCQ_MULTIPLE
+  TRUE_FALSE
+  FILL_BLANK
+  MATCHING
+  ESSAY
+}
+
+// Teacher-authored questions default to PENDING (same governance default
+// as Lesson Notes); EXAM_OFFICER/ADMIN-authored ones are auto-APPROVED
+// since they ARE the approvers. RETURNED mirrors the lesson-note cycle.
+enum QuestionStatus {
+  PENDING
+  APPROVED
+  RETURNED
+}
+
+enum CBTAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+}
+
+// docs/05-dashboard-teacher.md §3 — Pending → Approved | Returned.
+// A RETURNED note goes back to PENDING when the teacher edits/resubmits.
+enum LessonNoteStatus {
+  PENDING
+  APPROVED
+  RETURNED
+}
+
+// ---------------------------------------------------------------------------
+// School (single row — see docs/18-technical-architecture.md §2)
+// ---------------------------------------------------------------------------
+
+model School {
+  id                     String  @id @default(cuid())
+  name                   String
+  logoUrl                String?
+  address                String?
+  registrationNumber     String?
+  motto                  String?
+  // Brand colors for printed documents only (report cards, receipts,
+  // certificates) — never the app's own UI chrome. See
+  // prompts/00-DESIGN-SYSTEM.md §11.
+  documentPrimaryColor   String?
+  documentSecondaryColor String?
+  // Score-range -> grade -> remark config, see docs/14-module-academic-results.md §4.
+  // Structured/validated properly once the Academics module (Stage 5) needs
+  // to read it; stored as free-form JSON for now per this stage's scope.
+  gradingScale           Json?
+  // School-wide default CA/exam weighting, e.g. [{name:"CA1",weight:10},
+  // ...,{name:"Exam",weight:70}] — weights must sum to 100, enforced in
+  // SchoolService. Stage 5's per-term AssessmentComponent rows start from
+  // this default and can override it.
+  caWeighting            Json?
+  // Template for auto-generated admission numbers — {year} (4-digit) and
+  // {sequence} (zero-padded, 3 digits) are substituted by StudentsService.
+  // Configurable per docs/02-feature-list.md §3 ("admission number
+  // auto-generation") rather than hardcoded, since schools vary this.
+  admissionNumberFormat  String  @default("STU{year}{sequence}")
+  // Flat application fee in Naira (null = no fee required to apply).
+  // Admin-editable via PATCH /school; checked by AdmissionsService on
+  // POST /admissions/:id/application-fee/checkout before creating a transaction.
+  applicationFeeAmount   Float?
+  // Phase 2 modules toggled per-school so the sidebar hides nav for
+  // modules the school doesn't run (Hostel, Transport, Library, CBT).
+  // Stored as a JSON array of module keys; default is all disabled.
+  enabledModules         Json    @default("[]")
+  // Loan period (days) and borrowing limit per borrower type, plus the
+  // fine-per-day rate — Stage 24's "school-configurable" thresholds
+  // (docs/10-dashboard-librarian.md §2–3), same JSON-on-School-row
+  // convention as gradingScale/caWeighting above rather than a dedicated
+  // Settings table. Shape (see library.settings.ts's LibraryLoanPolicy):
+  // { studentLoanDays, staffLoanDays, studentBorrowLimit,
+  //   staffBorrowLimit, finePerDay }. Null falls back to sensible defaults
+  // so circulation works before a librarian configures anything.
+  libraryLoanPolicy      Json?
+  // Nigerian PAYE tax bands + Consolidated Relief Allowance formula +
+  // employee pension rate — same JSON-on-School-row, null-falls-back-to
+  // defaults convention as libraryLoanPolicy above. Tax law changes, so
+  // this must stay editable rather than a hardcoded constant; see
+  // PayrollSettingsService's DEFAULT_PAYROLL_CONFIG for the shape and the
+  // out-of-the-box default rates/brackets (confirm against current law
+  // before relying on this for real payroll).
+  payrollConfig          Json?
+  // Early-warning at-risk flagging (Stage 29, docs/19-unique-differentiators.md
+  // §5) — same JSON-on-School-row, null-falls-back-to-defaults convention
+  // as libraryLoanPolicy/payrollConfig above. This is the third place a
+  // configurable pass/fail-style threshold exists in the codebase (after
+  // Stage 4's chronic-absenteeism query param and Stage 18's gradebook
+  // at-risk query param) — see AtRiskSettingsService's DEFAULT_AT_RISK_CONFIG
+  // for the shape, and both of those endpoints' default-resolution paths
+  // for how they now read from this same config instead of their own
+  // separately hardcoded defaults.
+  atRiskConfig           Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Academic structure
+// ---------------------------------------------------------------------------
+
+model AcademicSession {
+  id   String @id @default(cuid())
+  name String @unique // e.g. "2025/2026"
+
+  terms Term[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Term {
+  id        String   @id @default(cuid())
+  name      String // "First", "Second", "Third"
+  startDate DateTime
+  endDate   DateTime
+  // Exactly one Term should have isCurrent = true at a time — enforced at
+  // the service layer (in a transaction) when it's set, not at the DB level.
+  isCurrent Boolean  @default(false)
+
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  enrollments          Enrollment[]
+  teacherAssignments   TeacherAssignment[]
+  attendanceRecords    Attendance[]
+  assessmentComponents AssessmentComponent[]
+  scores               Score[]
+  scoreSubmissions     ScoreSubmission[]
+  conductRatings       ConductRating[]
+  studentTermResults   StudentTermResult[]
+  resultStatuses       ClassTermResultStatus[]
+  feeStructures        FeeStructure[]
+  invoices             Invoice[]
+  timetableEntries     TimetableEntry[]
+  lessonNotes          LessonNote[]
+  examSessions         ExamSession[]
+  atRiskFlags          AtRiskFlag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, name])
+}
+
+model Class {
+  id    String @id @default(cuid())
+  name  String @unique // "JSS1", "SSS2"
+  level Int // ordering, e.g. JSS1=1 ... SSS3=6
+
+  arms          Arm[]
+  classSubjects ClassSubject[]
+  enrollments   Enrollment[]
+  feeStructures FeeStructure[]
+  resources     Resource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Arm {
+  id   String @id @default(cuid())
+  name String // "Gold", "Science A"
+
+  // Restrict (not Cascade): classes.service.ts's deleteClass blocks while
+  // any arm still exists, by design — see its translatePrismaError message
+  // — rather than silently sweeping arms (and their enrollments) away.
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  // The Form Master/homeroom teacher for this specific arm (docs/02-feature-list.md
+  // §4 "Class teacher / form master assignment") — what students.service.ts's
+  // role-scoping checks against for a CLASS_TEACHER's "own class" per
+  // docs/03-roles-and-permissions.md §2. SetNull (not Restrict/Cascade): a
+  // staff member leaving this post shouldn't block deleting them or the arm.
+  classTeacherId String?
+  classTeacher   Staff?  @relation("ArmClassTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
+
+  enrollments        Enrollment[]
+  attendanceRecords  Attendance[]
+  studentTermResults StudentTermResult[]
+  resultStatuses     ClassTermResultStatus[]
+  timetableEntries   TimetableEntry[]
+  examSessions       ExamSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([classId, name])
+}
+
+model Subject {
+  id   String  @id @default(cuid())
+  name String  @unique
+  code String? @unique
+
+  classSubjects                ClassSubject[]
+  assessmentComponentOverrides AssessmentComponent[]
+  resources                    Resource[]
+  questions                    Question[]
+  examSessions                 ExamSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClassSubject {
+  id String @id @default(cuid())
+
+  // Restrict (not Cascade) on both sides — deleteClass/deleteSubject block
+  // while any mapping still exists, by design (see their
+  // translatePrismaError messages), rather than silently sweeping mappings
+  // (and any TeacherAssignment rows on them) away.
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  teacherAssignments TeacherAssignment[]
+  attendanceRecords  Attendance[]
+  scores             Score[]
+  scoreSubmissions   ScoreSubmission[]
+  timetableEntries   TimetableEntry[]
+  lessonNotes        LessonNote[]
+  assignments        Assignment[]
+  cbtTests           CBTTest[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([classId, subjectId])
+}
+
+// ---------------------------------------------------------------------------
+// Staff
+// ---------------------------------------------------------------------------
+
+model Staff {
+  id             String    @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String    @unique
+  phone          String?
+  passwordHash   String
+  employmentDate DateTime?
+  isActive       Boolean   @default(true)
+
+  roles              StaffRole[]
+  refreshTokens      RefreshToken[]
+  teacherAssignments TeacherAssignment[]
+  formTeacherOfArms  Arm[]               @relation("ArmClassTeacher")
+  markedAttendances  Attendance[]
+
+  scoresEntered             Score[]           @relation("ScoreEnteredBy")
+  scoreSubmissionsSubmitted ScoreSubmission[] @relation("ScoreSubmissionSubmittedBy")
+  scoreSubmissionsUnlocked  ScoreSubmission[] @relation("ScoreSubmissionUnlockedBy")
+
+  discountsApplied    Discount[]
+  paymentsRecorded    Payment[]
+  paymentPlansCreated PaymentPlan[]
+  expensesRecorded    Expense[]
+
+  messageTemplatesCreated MessageTemplate[]
+  noticesCreated          Notice[]
+  conversations           Conversation[]
+
+  incidentsReported           Incident[]
+  disciplinaryActionsProposed DisciplinaryAction[]       @relation("DisciplinaryActionProposedBy")
+  disciplinaryActionsDecided  DisciplinaryAction[]       @relation("DisciplinaryActionDecidedBy")
+  eventsCreated               Event[]
+  documentsRequested          GeneratedDocument[]        @relation("DocumentRequestedBy")
+  documentsApproved           GeneratedDocument[]        @relation("DocumentApprovedBy")
+  applicantsReviewed          Applicant[]
+  lessonNotesSubmitted        LessonNote[]               @relation("LessonNoteSubmittedBy")
+  lessonNotesReviewed         LessonNote[]               @relation("LessonNoteReviewedBy")
+  assignmentsCreated          Assignment[]               @relation("AssignmentCreatedBy")
+  submissionsGraded           AssignmentSubmission[]     @relation("SubmissionGradedBy")
+  resourcesUploaded           Resource[]
+  clubsPatronOf               Club[]
+  consentFormsCreated         ConsentForm[]
+  visitorsHosted              Visitor[]                  @relation("VisitorHost")
+  gatePassesIssued            GatePass[]                 @relation("GatePassIssuedBy")
+  facilityIncidentsLogged     FacilityIncident[]
+  assetMovementsLogged        AssetMovement[]
+  questionsAuthored           Question[]                 @relation("QuestionAuthoredBy")
+  questionsReviewed           Question[]                 @relation("QuestionReviewedBy")
+  cbtTestsCreated             CBTTest[]
+  invigilationDuties          InvigilationDuty[]
+  malpracticeIncidentsLogged  MalpracticeIncident[]
+  libraryLoansIssued          Loan[]
+  wardenOfHostels             Hostel[]
+  rollCallsMarked             RollCall[]
+  visitationsLogged           Visitation[]
+  boarderHealthLogsLogged     BoarderHealthLog[]
+  leaveRequestsDecided        LeaveOutingRequest[]
+  transportAttendanceMarked   TransportAttendance[]
+  vehicleMaintenanceLogged    VehicleMaintenanceRecord[]
+
+  employmentRecord          StaffEmploymentRecord?
+  hrDocuments               StaffDocument[]
+  vacanciesPosted           JobVacancy[]              @relation("JobVacancyPostedBy")
+  candidateConverted        Candidate?                @relation("CandidateConvertedStaff")
+  hrLeaveRequestsMade       LeaveRequest[]            @relation("HrLeaveRequestMadeBy")
+  hrLeaveRequestsDecided    LeaveRequest[]            @relation("HrLeaveRequestDecidedBy")
+  leaveBalances             LeaveBalance[]
+  payrollRunsRun            PayrollRun[]              @relation("PayrollRunRunBy")
+  payrollRunsApproved       PayrollRun[]              @relation("PayrollRunApprovedBy")
+  payslips                  Payslip[]
+  staffAttendances          StaffAttendance[]
+  disciplinaryRecords       StaffDisciplinaryRecord[] @relation("StaffDisciplinaryRecordOwner")
+  disciplinaryRecordsLogged StaffDisciplinaryRecord[] @relation("StaffDisciplinaryRecordLoggedBy")
+  offboarding               OffboardingChecklist?     @relation("OffboardingChecklistOwner")
+  offboardingsInitiated     OffboardingChecklist[]    @relation("OffboardingChecklistInitiatedBy")
+
+  appraisalFormsCreated     AppraisalForm[]
+  appraisalCyclesCreated    AppraisalCycle[]
+  appraisalSubmissionsOwned AppraisalSubmission[] @relation("AppraisalSubmissionStaff")
+  appraisalsReviewed        AppraisalSubmission[] @relation("AppraisalSubmissionReviewer")
+  appraisalsSignedOff       AppraisalSubmission[] @relation("AppraisalSubmissionSignedOffBy")
+  trainingRecords           TrainingRecord[]      @relation("TrainingRecordStaff")
+  trainingRecordsLogged     TrainingRecord[]      @relation("TrainingRecordLoggedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StaffRole {
+  id String @id @default(cuid())
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  role    Role
+
+  createdAt DateTime @default(now())
+
+  @@unique([staffId, role])
+}
+
+// Which staff member teaches which ClassSubject, for a given term — the
+// relation Stage 5's score-entry RBAC checks against ("is this teacher
+// actually assigned to this class+subject right now").
+model TeacherAssignment {
+  id String @id @default(cuid())
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // Restrict (not Cascade): a teaching assignment is real operational data —
+  // deleting the class+subject mapping or the term it applies to must be
+  // blocked while an assignment still references it, not silently destroy
+  // the assignment. The services that delete these (subjects.service.ts's
+  // unmapFromClass, sessions.service.ts's deleteTerm) already assume this
+  // and translate the resulting P2003 into a clean 409 — see translatePrismaError.
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  // Drives ScoresService.submit's "deadline not passed" check and the
+  // teacher-facing countdown (docs §3) — null means no deadline is
+  // enforced. Settable by ADMIN/EXAM_OFFICER via ScoresController, not at
+  // assignment-creation time only, so an extension doesn't require
+  // deleting and recreating the assignment.
+  scoreEntryDeadline DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([staffId, classSubjectId, termId])
+}
+
+// ---------------------------------------------------------------------------
+// Students & Guardians
+// ---------------------------------------------------------------------------
+
+model Student {
+  id              String   @id @default(cuid())
+  admissionNumber String   @unique
+  firstName       String
+  lastName        String
+  // Nullable: a student may be enrolled before being issued login
+  // credentials (see docs/03-roles-and-permissions.md §4).
+  email           String?  @unique
+  passwordHash    String?
+  dateOfBirth     DateTime
+  gender          Gender
+  stateOfOrigin   String?
+  lga             String?
+  religion        String?
+  bloodGroup      String?
+  genotype        String?
+  address         String?
+  photoUrl        String?
+  // Digital ID / gate-scan (Stage 29, docs/19-unique-differentiators.md §8)
+  // — a long random opaque token, deliberately not the admission number
+  // (which is guessable/sequential), encoded client-side as a QR code and
+  // resolved back via GET /students/qr/:qrToken. Generated once at
+  // enrollment; nullable only because pre-Stage-29 students need a
+  // one-off backfill (see prisma/backfill-qr-tokens.ts).
+  qrToken         String?  @unique
+  // List of {id, type, url, uploadedAt} — testimonials, certificates,
+  // medical forms. A JSON array rather than a table since document types
+  // vary per docs/02-feature-list.md §3 and there's no cross-student
+  // querying need yet (unlike gradingScale's "structure it properly once
+  // a later stage needs to query it" — same reasoning as School's Json
+  // fields in schema.prisma's Stage 2 comments).
+  documents       Json?
+  isActive        Boolean  @default(true)
+
+  guardians                  StudentGuardian[]
+  enrollments                Enrollment[]
+  refreshTokens              RefreshToken[]
+  attendanceRecords          Attendance[]
+  scores                     Score[]
+  conductRatings             ConductRating[]
+  termResults                StudentTermResult[]
+  invoices                   Invoice[]
+  conversations              Conversation[]
+  incidents                  Incident[]
+  generatedDocuments         GeneratedDocument[]
+  assignmentSubmissions      AssignmentSubmission[]
+  clubMemberships            ClubMembership[]
+  consentResponses           ConsentResponse[]
+  authorizedPickupPersons    AuthorizedPickupPerson[]
+  cbtAttempts                CBTAttempt[]
+  gatePasses                 GatePass[]
+  pickupRequests             PickupRequest[]
+  lateArrivals               LateArrival[]
+  admissionRecord            Applicant?
+  examSeatAllocations        ExamSeatAllocation[]
+  externalExamCandidacies    ExternalExamCandidate[]
+  malpracticeIncidents       MalpracticeIncident[]
+  bedAllocation              BedAllocation?
+  rollCallEntries            RollCallEntry[]
+  visitations                Visitation[]
+  hostelInventoryItems       HostelInventoryItem[]
+  boarderHealthLogs          BoarderHealthLog[]
+  leaveOutingRequests        LeaveOutingRequest[]
+  routeAssignment            StudentRouteAssignment?
+  transportAttendanceEntries TransportAttendanceEntry[]
+  atRiskFlags                AtRiskFlag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id           String  @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String  @unique
+  phone        String?
+  passwordHash String
+  isActive     Boolean @default(true)
+
+  // Stage 28 USSD fallback — a *separate* credential from passwordHash,
+  // hashed the same way (bcrypt), since a USSD session authenticates by
+  // phone number + PIN, not email + password. Null until the guardian (or
+  // an Admin on their behalf) sets one — see UssdSessionController.
+  ussdPin String?
+
+  students      StudentGuardian[]
+  refreshTokens RefreshToken[]
+  conversations Conversation[]
+
+  consentResponses        ConsentResponse[]
+  pickupPersonsAdded      AuthorizedPickupPerson[]
+  pickupRequests          PickupRequest[]
+  leaveOutingRequestsMade LeaveOutingRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudentGuardian {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  guardianId String
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  relationship String // "Mother", "Father", "Uncle", "Guardian", etc.
+
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, guardianId])
+}
+
+model Enrollment {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id])
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id])
+
+  status EnrollmentStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A student has at most one enrollment per term.
+  @@unique([studentId, termId])
+}
+
+// ---------------------------------------------------------------------------
+// Attendance
+// ---------------------------------------------------------------------------
+
+// One row per student per day, optionally scoped to a single period/subject.
+// `classSubjectId` null = whole-day attendance marked by the arm's Class
+// Teacher; set = a single period's attendance marked by the Subject Teacher
+// who owns that classSubject — see AttendanceService.markAttendance.
+model Attendance {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Always set (even for per-period rows), so class-day lookups
+  // (GET /attendance/class/:armId) don't need to join through classSubject.
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  classSubjectId String?
+  classSubject   ClassSubject? @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  date   DateTime
+  status AttendanceStatus
+
+  markedByStaffId String
+  markedBy        Staff  @relation(fields: [markedByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Protects the per-period case at the DB level (classSubjectId non-null,
+  // so Postgres enforces it normally). It does NOT protect the whole-day
+  // case (classSubjectId null) — Postgres treats NULLs as distinct, so two
+  // null rows for the same studentId+date wouldn't violate this constraint.
+  // That case is separately closed by a hand-written partial unique index
+  // — "Attendance_daily_unique" on (studentId, date) WHERE classSubjectId
+  // IS NULL — added via raw SQL in
+  // prisma/migrations/20260627_attendance_daily_unique_index, since Prisma's
+  // schema DSL can't express a partial index. `prisma migrate dev` won't
+  // show this as drift (it only diffs what the DSL can represent), but
+  // don't be surprised it isn't declared here — see that migration's SQL.
+  @@unique([studentId, date, classSubjectId])
+  @@index([armId, date])
+  @@index([termId, classSubjectId])
+}
+
+// ---------------------------------------------------------------------------
+// Academics & Results Engine — docs/14-module-academic-results.md
+// ---------------------------------------------------------------------------
+
+// One row per (term, optional subject-override, component name) — e.g.
+// "CA1" worth 10% of the term's total for every subject, or an override
+// scoped to one specific Subject (docs §2's "optional override per subject
+// if needed"). `subjectId` null = applies to every subject that term;
+// set = overrides the null-scoped default for that one subject. Resolution
+// (which set applies to a given classSubject+term) lives in
+// AssessmentComponentsService, not the schema.
+model AssessmentComponent {
+  id       String @id @default(cuid())
+  name     String // "CA1", "CA2", "Exam"
+  maxScore Float
+  weight   Float // contributes this many points out of 100 to the subject's total
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  scores   Score[]
+  cbtTests CBTTest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([termId, subjectId, name])
+}
+
+// One row per student per assessment component per subject per term — the
+// raw entered marks. `classSubjectId` is class-level (not arm-level, same
+// as TeacherAssignment — see that model's comment), so a teacher assigned
+// to multiple arms of one class submits all of them in a single
+// POST /scores/submit call; ranking/broadsheet queries scope back down to
+// a specific arm by joining through Enrollment.
+model Score {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  assessmentComponentId String
+  assessmentComponent   AssessmentComponent @relation(fields: [assessmentComponentId], references: [id], onDelete: Restrict)
+
+  score Float
+
+  enteredByStaffId String
+  enteredBy        Staff  @relation("ScoreEnteredBy", fields: [enteredByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, classSubjectId, termId, assessmentComponentId])
+  @@index([classSubjectId, termId])
+}
+
+// Locking state for one class+subject+term's scores — see
+// ScoresService.submit's "lock that teacher's rows" requirement
+// (docs §3). Keyed by (classSubjectId, termId), not per-teacher: a
+// ClassSubject's score rows are a single shared dataset (matching
+// TeacherAssignment's existing class-level, not per-teacher, granularity),
+// so "locked" is a property of the dataset, not of whoever last touched it.
+model ScoreSubmission {
+  id String @id @default(cuid())
+
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  submittedByStaffId String
+  submittedBy        Staff  @relation("ScoreSubmissionSubmittedBy", fields: [submittedByStaffId], references: [id], onDelete: Restrict)
+
+  locked      Boolean  @default(true)
+  submittedAt DateTime @default(now())
+
+  unlockedAt        DateTime?
+  unlockedByStaffId String?
+  unlockedBy        Staff?    @relation("ScoreSubmissionUnlockedBy", fields: [unlockedByStaffId], references: [id], onDelete: SetNull)
+  unlockReason      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([classSubjectId, termId])
+}
+
+// One row per student+term+domain+category — docs §6's Affective/Psychomotor
+// domain ratings. `category` is one of a fixed list enforced in
+// ResultsService/DTOs (e.g. "Punctuality", "Handwriting"), not a DB-level
+// enum, since the exact wording is cosmetic and easier to keep as a
+// validated string constant than a migration-requiring enum.
+model ConductRating {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  domain   ConductDomain
+  category String
+  score    Int // 1-5 scale, validated in the DTO
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, termId, domain, category])
+}
+
+// One row per student per term — the collated, report-card-ready result.
+// Created/recomputed by ResultsService.collate once every subject for the
+// arm is locked (docs §5's "only once all subjects... are submitted and
+// locked"); `armId` is stored explicitly (not just derived via Enrollment)
+// because a result must stay attached to the arm it was collated for even
+// if the student's enrollment later changes (promotion, transfer).
+model StudentTermResult {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id], onDelete: Restrict)
+
+  formTeacherComment String?
+  principalComment   String?
+
+  // Cached at collation time — recomputed (overwritten) on every
+  // subsequent collate call, e.g. after a RETURNED correction.
+  overallAverage  Float?
+  overallPosition Int?
+  classSize       Int?
+
+  reportCardUrl         String?
+  reportCardGeneratedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, termId])
+}
+
+// The result-workflow state for one arm+term — docs §7. A single row,
+// created lazily on first read/write, advanced only via ResultsService's
+// explicit collate/approve/return/publish actions.
+model ClassTermResultStatus {
+  id String @id @default(cuid())
+
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  stage        ResultStage @default(SCORES_IN_PROGRESS)
+  returnReason String?
+  publishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([armId, termId])
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+// One row per issued refresh token. The token's `jti` claim is this row's
+// id — revocation is "mark this row revoked," not token-hash lookups, since
+// the jti already gives an unguessable, indexable identifier without
+// needing to hash the whole token on every refresh.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userType  UserType
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+// Append-only — see docs/18-technical-architecture.md §8. Never updated or
+// deleted by application code.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // null for SYSTEM actions
+  actorType  UserType
+  actorRole  String? // snapshot of role(s) at the time, e.g. "ADMIN"
+  action     String // e.g. "LOGIN", "REFRESH_TOKEN_ROTATED", "SCORE_UNLOCK"
+  entityType String // e.g. "Staff", "Score"
+  entityId   String?
+  beforeJson Json?
+  afterJson  Json?
+
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Fees & Payments — docs/15-module-fees-payments.md
+// ---------------------------------------------------------------------------
+
+// One per (class, term) — docs §1 "defined per class level + term + session"
+// (a Term already pins a session, so no separate sessionId is needed here).
+// The container for that class+term's billable components; edited via its
+// FeeComponent children rather than superseded by a second structure for
+// the same scope.
+model FeeStructure {
+  id String @id @default(cuid())
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  components FeeComponent[]
+  invoices   Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([classId, termId])
+}
+
+model FeeComponent {
+  id     String           @id @default(cuid())
+  name   String // "Tuition", "PTA Levy", "Development Levy", etc.
+  amount Float
+  type   FeeComponentType
+
+  feeStructureId String
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  lineItems InvoiceLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([feeStructureId, name])
+}
+
+// Per student per term — but a student can have more than one (the
+// bulk-generated regular invoice, plus any number of ad-hoc one-off ones,
+// e.g. a mid-term levy — docs §3), so this is NOT unique on
+// (studentId, termId) alone. `feeStructureId` is set only for
+// bulk-generated invoices, which lets generate() skip a student who
+// already has one for this exact structure without also blocking
+// legitimately-separate one-off invoices (Postgres treats each NULL in a
+// unique index as distinct, so the constraint below is a no-op for
+// one-offs and a real guard for structure-generated ones).
+model Invoice {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  feeStructureId String?
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: Restrict)
+
+  // Set for ad-hoc one-off invoices (e.g. "Mid-term Sports Levy") to label
+  // them distinctly from the structure-generated regular term invoice.
+  description String?
+
+  // Gross, cached sum of lineItems.amount — recomputed whenever a line
+  // item is added. Discounts and payments are tracked separately (see
+  // Discount/Payment) so reports can show gross vs. discounted vs.
+  // collected without re-deriving everything from scratch on every read.
+  subtotal   Float
+  amountPaid Float         @default(0)
+  status     InvoiceStatus @default(UNPAID)
+  // Nullable — the defaulters report's "days overdue" filter (docs §6) has
+  // nothing to compare against until this is set; an invoice without one
+  // simply never counts as overdue.
+  dueDate    DateTime?
+
+  lineItems       InvoiceLineItem[]
+  discounts       Discount[]
+  payments        Payment[]
+  transactions    PaymentTransaction[]
+  paymentPlan     PaymentPlan?
+  // Set when a library fine is settled via "Add to Fees Invoice" instead
+  // of paid directly — one ad-hoc invoice per fine, never shared.
+  libraryFineLoan Loan?
+  reminderLogs    FeeReminderLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, termId, feeStructureId])
+  @@index([studentId, termId])
+  @@index([termId, status])
+}
+
+// A snapshot of one FeeComponent on one Invoice at generation time — name
+// and amount are copied rather than read live through feeComponentId, so a
+// later edit or deletion of the FeeComponent never changes an
+// already-issued invoice's numbers.
+model InvoiceLineItem {
+  id     String @id @default(cuid())
+  name   String
+  amount Float
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Nullable + SetNull: kept for traceability back to the live component
+  // where one still exists, but never required — see model comment above.
+  feeComponentId String?
+  feeComponent   FeeComponent? @relation(fields: [feeComponentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+// docs §2 — percentage or flat, with a required reason, recorded distinctly
+// from the invoice total (never just silently lowering subtotal) so
+// reports can show gross given up. `amount` is the computed NGN value at
+// application time — cached so a later subtotal change (e.g. a new line
+// item) doesn't silently reinterpret an already-granted percentage
+// discount against a different base.
+model Discount {
+  id     String       @id @default(cuid())
+  type   DiscountType
+  value  Float // the raw percentage (0-100) or flat NGN amount entered
+  amount Float // the resulting NGN discount, computed once at creation
+  reason String
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  appliedByStaffId String
+  appliedBy        Staff  @relation(fields: [appliedByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+// A checkout-initiated Paystack transaction — created by POST
+// /payments/checkout, confirmed (or not) by the webhook. Kept separate
+// from Payment so an abandoned/failed checkout never looks like money
+// actually received, and so the webhook has a `reference` to look up and
+// an idempotency flag (status) to avoid double-processing a retried
+// delivery.
+model PaymentTransaction {
+  id               String            @id @default(cuid())
+  // Our own generated reference, sent to Paystack and echoed back in the
+  // webhook payload — globally unique so it doubles as the idempotency key.
+  reference        String            @unique
+  amount           Float
+  authorizationUrl String?
+  status           TransactionStatus @default(PENDING)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// The confirmed fact of a payment — created either by the Paystack webhook
+// (recordedByStaffId null — no human actor) or by POST /payments/manual
+// (recordedByStaffId set — docs §4 "the receiving staff member logged for
+// accountability"). Never edited or reversed by application code; a
+// mistaken manual entry is corrected by recording an equal-and-opposite
+// adjustment, not by mutating history (mirrors AuditLog's append-only
+// stance for the same reason — money movements need a stable record).
+model Payment {
+  id        String        @id @default(cuid())
+  amount    Float
+  method    PaymentMethod
+  reference String // Paystack reference for online; bank/POS ref for manual
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  transactionId String?             @unique
+  transaction   PaymentTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  recordedByStaffId String?
+  recordedBy        Staff?  @relation(fields: [recordedByStaffId], references: [id], onDelete: Restrict)
+
+  receiptUrl         String?
+  receiptGeneratedAt DateTime?
+
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+// docs §5 — splits one invoice into dated installments, each independently
+// trackable so Stage 7's reminder logic can target one that's coming due
+// or overdue without re-deriving a schedule from the invoice alone.
+model PaymentPlan {
+  id String @id @default(cuid())
+
+  invoiceId String  @unique
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  installments Installment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Installment {
+  id      String            @id @default(cuid())
+  dueDate DateTime
+  amount  Float
+  status  InstallmentStatus @default(PENDING)
+  paidAt  DateTime?
+
+  paymentPlanId String
+  paymentPlan   PaymentPlan @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentPlanId])
+}
+
+// One row per threshold actually fired for a given invoice — the
+// uniqueness constraint is what makes the fee-reminder cron's "don't
+// re-send the same threshold twice" guarantee a database-enforced fact
+// rather than just an application-level check a race could slip past.
+model FeeReminderLog {
+  id        String               @id @default(cuid())
+  invoiceId String
+  invoice   Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  threshold FeeReminderThreshold
+
+  createdAt DateTime @default(now())
+
+  @@unique([invoiceId, threshold])
+}
+
+// ---------------------------------------------------------------------------
+// Communication (docs/16-module-communication.md)
+// ---------------------------------------------------------------------------
+
+// docs §4 — predefined, school-customizable wording for common message
+// types, with {{placeholder}} substitution filled in per recipient by
+// BroadcastsService. `key` identifies the small set of system templates
+// Stage 7's own automated triggers (absence alerts, fee-reminder
+// escalation) look up by name — they can be edited (so a school can match
+// its own voice, per docs §4) but never deleted, since deleting one would
+// silently break whichever automated trigger depends on it. Ad-hoc
+// templates created for one-off broadcasts have no key and can be deleted
+// freely.
+model MessageTemplate {
+  id   String  @id @default(cuid())
+  key  String? @unique
+  name String
+  body String
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  broadcasts BroadcastLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// docs §9 — the notice board: a simple persistent feed, independent of the
+// channel-fanout machinery below (a notice doesn't necessarily SMS/email
+// anyone; it's just something everyone can browse on their dashboard).
+model Notice {
+  id       String @id @default(cuid())
+  title    String
+  body     String
+  category String // free-text, e.g. "General", "Exam", "Event" — docs §9 "browsable by date/category"
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+// docs §2/§7 — one row per POST /broadcast call (human-initiated) or per
+// automated trigger (absence alert, fee-reminder threshold), recording
+// who/what sent it, to how many, and the message actually sent. Per-
+// recipient rendered (post-placeholder-substitution) text isn't stored
+// separately — see BroadcastRecipient — to avoid duplicating a PII-laden
+// message body once per recipient for no benefit the audit trail needs.
+model BroadcastLog {
+  id        String   @id @default(cuid())
+  actorId   String? // null for SYSTEM-triggered (absence alert, fee reminder)
+  actorType UserType
+  actorRole String?
+
+  targetType          BroadcastTargetType
+  // Arm id (CLASS), Role enum value as a string (ROLE — omitted means
+  // "every staff member"), or the specific recipient's id (INDIVIDUAL, see
+  // targetRecipientType). Unused for WHOLE_SCHOOL.
+  targetId            String?
+  // Only meaningful for INDIVIDUAL — which table targetId refers to.
+  targetRecipientType RecipientType?
+
+  channels NotificationChannel[]
+
+  templateId String?
+  template   MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  // Ad-hoc free-form text when no template was used; otherwise the raw
+  // (pre-substitution) template body, kept as a stable audit record even
+  // if the template is edited/deleted later.
+  message    String
+
+  recipientCount Int
+
+  recipients BroadcastRecipient[]
+
+  createdAt DateTime @default(now())
+}
+
+// One row per (recipient, channel) — including a synthetic IN_APP row for
+// every recipient on every broadcast (see NotificationChannel comment) —
+// so delivery-status can report sent/delivered/read per channel without
+// re-deriving recipient lists from the target after the fact (membership
+// of a class/role can change after the broadcast was sent).
+model BroadcastRecipient {
+  id String @id @default(cuid())
+
+  broadcastLogId String
+  broadcastLog   BroadcastLog @relation(fields: [broadcastLogId], references: [id], onDelete: Cascade)
+
+  recipientType RecipientType
+  recipientId   String
+  channel       NotificationChannel
+
+  status       DeliveryStatus @default(PENDING)
+  errorMessage String?
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  readAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([broadcastLogId])
+  @@index([recipientType, recipientId])
+}
+
+// docs §6 — one thread per (staff, guardian, student) triple, so a
+// guardian with more than one child at the school gets a separate thread
+// per ward rather than every conversation about every child blurring
+// together. Staff-initiated only (see ConversationsService) — a guardian
+// can reply within an existing thread but not cold-open one with arbitrary
+// staff.
+// Two thread shapes share this table (Stage 15): staff<->guardian threads
+// about a student (guardianId set — the original Stage 7 shape) and direct
+// staff<->student threads (guardianId NULL — a student messaging their own
+// teacher). A student participant sees only their own guardianId-NULL
+// threads; a guardian's threads about the same student stay private to the
+// guardian. Uniqueness for the NULL shape is a partial index added by hand
+// in the Stage 15 migration (Postgres treats NULLs as distinct, so the
+// composite @@unique below can't cover it).
+model Conversation {
+  id String @id @default(cuid())
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, guardianId, studentId])
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderType UserType // STAFF, GUARDIAN, or (since Stage 15) STUDENT
+  senderId   String
+  body       String
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+// ---------------------------------------------------------------------------
+// Discipline (docs/02-feature-list.md §17)
+// ---------------------------------------------------------------------------
+
+// A logged incident — never hard-deleted (same append-only stance as
+// AuditLog/Payment elsewhere in this schema; a disciplinary record is
+// exactly the kind of thing that must stay a stable historical fact, not
+// something a later edit can quietly erase). Corrections happen by adding
+// a new DisciplinaryAction (e.g. REJECTED), not by mutating or removing
+// the Incident itself.
+model Incident {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  reportedByStaffId String
+  reportedBy        Staff  @relation(fields: [reportedByStaffId], references: [id], onDelete: Restrict)
+
+  description String
+  severity    IncidentSeverity
+  date        DateTime
+
+  actions                       DisciplinaryAction[]
+  // Set when an Exam Officer escalates a MalpracticeIncident into the
+  // formal discipline workflow — the models stay separate (different
+  // logging role, different nav), this is just the cross-reference.
+  escalatedMalpracticeIncidents MalpracticeIncident[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+// One incident can carry more than one proposed action over time (e.g. a
+// Class Teacher's WARNING proposal, later escalated to a SUSPENSION
+// proposal by an Admin) — modeled as separate rows rather than one
+// mutable "current action" field, so the escalation history itself is
+// preserved.
+model DisciplinaryAction {
+  id String @id @default(cuid())
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  actionType DisciplinaryActionType
+  status     DisciplinaryActionStatus @default(PROPOSED)
+
+  proposedByStaffId String
+  proposedBy        Staff  @relation("DisciplinaryActionProposedBy", fields: [proposedByStaffId], references: [id], onDelete: Restrict)
+
+  // Set only when an ADMIN actually reviewed a SUSPENSION/EXPULSION
+  // proposal (APPROVED or REJECTED) — left null for an auto-approved
+  // WARNING, since no human sign-off decision happened for those.
+  decidedByStaffId String?
+  decidedBy        Staff?    @relation("DisciplinaryActionDecidedBy", fields: [decidedByStaffId], references: [id], onDelete: Restrict)
+  decidedAt        DateTime?
+  decisionNotes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([incidentId])
+}
+
+// ---------------------------------------------------------------------------
+// Calendar & Events (docs/02-feature-list.md §19)
+// ---------------------------------------------------------------------------
+
+model Event {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+  // Free text, same convention as Notice.category — "PTA Meeting", "Sports
+  // Day", "Holiday", etc. — docs §19 doesn't call for a closed enum.
+  category    String
+  startDate   DateTime
+  // Null for a single-point-in-time event (e.g. "Sports Day" with no
+  // explicit end) — the /calendar range query treats startDate alone as
+  // the comparison point in that case.
+  endDate     DateTime?
+  rsvpEnabled Boolean   @default(false)
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  rsvps EventRsvp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startDate])
+}
+
+// responderType is deliberately narrower than the full UserType enum
+// (STUDENT/SYSTEM don't RSVP) — enforced at the service layer, not the
+// schema, same as Message.senderType elsewhere in this file.
+model EventRsvp {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  responderType UserType
+  responderId   String
+  response      EventRsvpResponse
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, responderType, responderId])
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Documents & Certificates (docs/02-feature-list.md §20)
+// ---------------------------------------------------------------------------
+
+// `url`/`generatedAt` stay null until an ADMIN approves — the PDF itself
+// isn't rendered at /documents/generate time, only at approval, so the
+// e-signature block on the rendered document can correctly show who
+// approved it (the approver isn't known yet when a DRAFT is first
+// requested). This also makes "not downloadable until approved" a simple
+// fact (no url exists yet) rather than a separate check to get wrong.
+model GeneratedDocument {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  type   DocumentType
+  status DocumentStatus @default(DRAFT)
+
+  requestedByStaffId String
+  requestedBy        Staff  @relation("DocumentRequestedBy", fields: [requestedByStaffId], references: [id], onDelete: Restrict)
+
+  url         String?
+  generatedAt DateTime?
+
+  approvedByStaffId String?
+  approvedBy        Staff?    @relation("DocumentApprovedBy", fields: [approvedByStaffId], references: [id], onDelete: Restrict)
+  approvedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Admissions (docs/02-feature-list.md §2, docs/04-dashboard-school-admin.md §2)
+// ---------------------------------------------------------------------------
+
+// An applicant exists before a Student record — created via the public
+// POST /admissions/apply endpoint and converted to a Student via
+// POST /admissions/:id/convert once approved. Never deleted (audit trail).
+model Applicant {
+  id String @id @default(cuid())
+
+  // Bio-data submitted on the application form
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime
+  gender             String
+  address            String?
+  intendedClassLevel String
+
+  // Parent/guardian contact submitted with the application
+  guardianFirstName String
+  guardianLastName  String
+  guardianEmail     String
+  guardianPhone     String
+
+  status             ApplicantStatus @default(SUBMITTED)
+  applicationFeePaid Boolean         @default(false)
+  reviewerNotes      String?
+  reviewedByStaffId  String?
+  reviewedBy         Staff?          @relation(fields: [reviewedByStaffId], references: [id], onDelete: SetNull)
+
+  // Populated after APPROVED — offer letter PDF URL
+  offerLetterUrl String?
+
+  // Populated after CONVERTED — cross-reference to the created student
+  convertedStudentId String?  @unique
+  convertedStudent   Student? @relation(fields: [convertedStudentId], references: [id], onDelete: SetNull)
+
+  feeTransactions AdmissionFeeTransaction[]
+
+  submittedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([guardianEmail])
+}
+
+// A Paystack transaction for an application fee — separate from
+// PaymentTransaction because there's no Invoice yet (the student
+// hasn't been created). References use an "ADMIT-" prefix so the
+// webhook handler can distinguish them from regular invoice payments.
+model AdmissionFeeTransaction {
+  id               String             @id @default(cuid())
+  reference        String             @unique
+  amount           Float
+  authorizationUrl String?
+  status           AdmissionFeeStatus @default(PENDING)
+
+  applicantId String
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// docs/15-module-fees-payments.md §7 — the non-fee expenditure ledger.
+// Voided (voidedAt set), never hard-deleted — same "audit-significant
+// financial records aren't hard-deleted" convention as Payment/Discount:
+// a misentered row is voided and re-entered, and the void itself is
+// audit-logged, so the ledger's history stays reconstructable.
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  amount      Float
+  date        DateTime
+  description String
+  receiptUrl  String?
+
+  recordedByStaffId String
+  recordedBy        Staff  @relation(fields: [recordedByStaffId], references: [id], onDelete: Restrict)
+
+  voidedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Timetable (Stage 16 — docs/04-dashboard-school-admin.md §4, docs/05 §12)
+// ---------------------------------------------------------------------------
+
+// A named school-wide time slot (e.g. "Period 1, 8:00–8:40") applying to
+// every weekday — day-of-week lives on TimetableEntry, not here, matching
+// the "Period 1, Mon–Fri" framing in the spec. Times are display strings
+// ("HH:MM"), not DateTimes: they order and label the grid, nothing does
+// timezone math with them.
+model Period {
+  id        String @id @default(cuid())
+  name      String @unique
+  startTime String
+  endTime   String
+  sortOrder Int    @default(0)
+
+  timetableEntries TimetableEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimetableEntry {
+  id String @id @default(cuid())
+
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id], onDelete: Cascade)
+
+  // Restrict: unmapping a subject from a class while it's still on the
+  // timetable should block with a clear 409, not silently empty the grid —
+  // same stance as TeacherAssignment's classSubjectId.
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  periodId String
+  period   Period @relation(fields: [periodId], references: [id], onDelete: Restrict)
+
+  // ISO weekday: 1 = Monday … 7 = Sunday (school weeks use 1–5).
+  dayOfWeek Int
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  // Free text (docs prompt: no Room model needed) — room conflict detection
+  // compares these strings verbatim.
+  room String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // "The class already has something scheduled then" — DB-enforced backstop
+  // behind the service-level conflict check.
+  @@unique([armId, termId, dayOfWeek, periodId])
+  @@index([termId, dayOfWeek, periodId])
+}
+
+// ---------------------------------------------------------------------------
+// Lesson Notes (Stage 17 — docs/05-dashboard-teacher.md §3, docs/04 §4)
+// ---------------------------------------------------------------------------
+
+// One note per topic/week per class-subject per term. Content uses the
+// conventional Nigerian lesson-note sections (objectives/content/activities/
+// evaluation) as plain text fields; the NERDC scheme reference is free text
+// by design — the spec says "mapped to", not "a curriculum database".
+model LessonNote {
+  id String @id @default(cuid())
+
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  weekOfTerm     Int
+  topic          String
+  nerdcReference String?
+
+  objectives String?
+  content    String
+  activities String?
+  evaluation String?
+
+  attachmentUrl String?
+
+  status LessonNoteStatus @default(PENDING)
+
+  submittedByStaffId String
+  submittedBy        Staff  @relation("LessonNoteSubmittedBy", fields: [submittedByStaffId], references: [id], onDelete: Cascade)
+
+  reviewedByStaffId String?
+  reviewedBy        Staff?    @relation("LessonNoteReviewedBy", fields: [reviewedByStaffId], references: [id], onDelete: SetNull)
+  reviewerNotes     String?
+  reviewedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([classSubjectId, termId])
+  @@index([submittedByStaffId, termId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Assignments & Homework (Stage 18 — docs/05 §6, docs/06 §5, docs/07 §11)
+// ---------------------------------------------------------------------------
+
+model Assignment {
+  id String @id @default(cuid())
+
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  title               String
+  instructions        String
+  dueDate             DateTime
+  // docs/05 §6 — late submission is an explicit opt-in per assignment,
+  // default off: POST /assignments/:id/submit rejects after dueDate
+  // unless this is set.
+  allowLateSubmission Boolean  @default(false)
+
+  attachmentUrl String?
+
+  createdByStaffId String
+  createdBy        Staff  @relation("AssignmentCreatedBy", fields: [createdByStaffId], references: [id], onDelete: Cascade)
+
+  // Set once the due-soon cron has fired for this assignment, so a re-run
+  // (or catch-up after downtime) never double-notifies — same stored-fact
+  // stance as FeeReminderLog.
+  dueSoonNotifiedAt DateTime?
+
+  submissions AssignmentSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([classSubjectId, dueDate])
+  @@index([dueDate])
+}
+
+// One submission per student per assignment — resubmitting before the
+// deadline updates the same row (upsert in the service) rather than
+// stacking versions the teacher then has to pick between.
+model AssignmentSubmission {
+  id String @id @default(cuid())
+
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  textResponse String?
+  fileUrl      String?
+
+  submittedAt DateTime @default(now())
+
+  // Free-text grade ("8/10", "B+") — homework marks feed feedback, not the
+  // formal Score pipeline, so flexibility beats numeric strictness here.
+  grade           String?
+  feedback        String?
+  gradedAt        DateTime?
+  gradedByStaffId String?
+  gradedBy        Staff?    @relation("SubmissionGradedBy", fields: [gradedByStaffId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Resources / Digital E-Library (Stage 19 — docs/05 §7, docs/06 §7)
+// ---------------------------------------------------------------------------
+
+// Scoped by classId — a subject's resource is shared with every arm at
+// that level (per the docs prompt), so there's no per-arm scoping here.
+// Exactly one of fileUrl/externalUrl is set: files go through
+// StorageService, VIDEO_LINK carries an external URL instead of forcing a
+// video upload.
+model Resource {
+  id    String       @id @default(cuid())
+  title String
+  topic String?
+  type  ResourceType
+
+  fileUrl     String?
+  externalUrl String?
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  uploadedByStaffId String
+  uploadedBy        Staff  @relation(fields: [uploadedByStaffId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([classId, subjectId])
+  @@index([uploadedByStaffId])
+}
+
+// ---------------------------------------------------------------------------
+// Clubs & Activities (Stage 20 — docs/06-dashboard-student.md §12)
+// ---------------------------------------------------------------------------
+
+model Club {
+  id              String  @id @default(cuid())
+  name            String  @unique
+  description     String?
+  // Free text ("Wednesdays, 4-5pm, Hall B") — no structured schedule model,
+  // per the docs prompt.
+  meetingSchedule String?
+
+  patronStaffId String?
+  patron        Staff?  @relation(fields: [patronStaffId], references: [id], onDelete: SetNull)
+
+  memberships ClubMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClubMembership {
+  id String @id @default(cuid())
+
+  clubId String
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([clubId, studentId])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Consent Forms (Stage 20 — docs/07-dashboard-parent.md §6)
+// ---------------------------------------------------------------------------
+
+// Targeting reuses the broadcast shape: WHOLE_SCHOOL (targetArmId null) or
+// CLASS (targetArmId = one Arm) — the only two scopes the prompt names.
+model ConsentForm {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  type        ConsentFormType
+
+  targetType  BroadcastTargetType @default(WHOLE_SCHOOL)
+  targetArmId String?
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Cascade)
+
+  responses ConsentResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([targetArmId])
+}
+
+// One response per student per form (a second guardian responding
+// overwrites — same idempotent upsert stance as the event RSVP). The
+// e-signature is the typed full name + respondedAt timestamp, the same
+// convention as Stage 9's generated documents.
+model ConsentResponse {
+  id String @id @default(cuid())
+
+  consentFormId String
+  consentForm   ConsentForm @relation(fields: [consentFormId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  guardianId String
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  response      ConsentResponseValue
+  signatureName String
+  respondedAt   DateTime             @default(now())
+
+  @@unique([consentFormId, studentId])
+  @@index([guardianId])
+}
+
+// ---------------------------------------------------------------------------
+// Front Desk / Security + Pickup Authorization (Stage 21 — docs/13, docs/07 §10)
+// ---------------------------------------------------------------------------
+
+// Parent-owned safety list — who may collect this student at the gate.
+model AuthorizedPickupPerson {
+  id           String  @id @default(cuid())
+  name         String
+  phone        String
+  relationship String
+  photoUrl     String?
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  addedByGuardianId String
+  addedBy           Guardian @relation(fields: [addedByGuardianId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model Visitor {
+  id       String  @id @default(cuid())
+  name     String
+  phone    String
+  reason   String
+  photoUrl String?
+
+  hostStaffId String?
+  hostStaff   Staff?  @relation("VisitorHost", fields: [hostStaffId], references: [id], onDelete: SetNull)
+
+  signedInAt  DateTime  @default(now())
+  signedOutAt DateTime?
+
+  @@index([signedInAt])
+}
+
+model GatePass {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Nullable — a phone-verified walk-up has no parent-initiated record.
+  requestedByGuardianId String?
+
+  pickupPersonName  String
+  pickupPersonPhone String?
+
+  verifiedAgainstAuthorizedList Boolean
+  status                        GatePassStatus
+
+  issuedByStaffId String
+  issuedBy        Staff  @relation("GatePassIssuedBy", fields: [issuedByStaffId], references: [id], onDelete: Cascade)
+
+  issuedAt   DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([issuedAt])
+  @@index([status])
+}
+
+// The thin parent-side "calling ahead" record — front desk converts it
+// into a GatePass on arrival; it is NOT a duplicate of GatePass.
+model PickupRequest {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  guardianId String
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  pickupTime DateTime
+  reason     String
+  status     PickupRequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model LateArrival {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  arrivalTime          DateTime
+  notifiedClassTeacher Boolean  @default(false)
+
+  loggedAt DateTime @default(now())
+
+  @@index([loggedAt])
+}
+
+// Deliberately distinct from Stage 9's Incident (student-discipline,
+// studentId-required): this is general gate/facility security with no
+// student tie.
+model FacilityIncident {
+  id              String               @id @default(cuid())
+  type            FacilityIncidentType
+  description     String
+  partiesInvolved String?
+  actionTaken     String?
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation(fields: [loggedByStaffId], references: [id], onDelete: Cascade)
+
+  loggedAt DateTime @default(now())
+
+  @@index([loggedAt])
+}
+
+model AssetMovement {
+  id               String         @id @default(cuid())
+  assetDescription String
+  direction        AssetDirection
+  reason           String?
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation(fields: [loggedByStaffId], references: [id], onDelete: Cascade)
+
+  loggedAt DateTime @default(now())
+
+  @@index([loggedAt])
+}
+
+// ---------------------------------------------------------------------------
+// CBT & Examination Engine (Stage 22 — docs/17, Phase 2 core)
+// ---------------------------------------------------------------------------
+
+// options/correctAnswer are JSON whose shape depends on `type`:
+//   MCQ_SINGLE / MCQ_MULTIPLE: options [{id, text}], answer "a" / ["a","c"]
+//   TRUE_FALSE:                options null,          answer true|false
+//   FILL_BLANK:                options null,          answer ["accepted","variants"] (case-insensitive/trimmed compare)
+//   MATCHING:                  options {left:[{id,text}], right:[{id,text}]}, answer {"l1":"r2", ...}
+//   ESSAY:                     options null,          answer null (manually graded)
+model Question {
+  id String @id @default(cuid())
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  // Free-text NERDC-scheme reference, same convention as LessonNote.
+  topic      String
+  classLevel Int
+  difficulty QuestionDifficulty
+  bloomTag   String?
+
+  type          QuestionType
+  prompt        String
+  imageUrl      String?
+  options       Json?
+  correctAnswer Json?
+
+  status        QuestionStatus @default(PENDING)
+  reviewerNotes String?
+
+  authoredByStaffId String
+  authoredBy        Staff  @relation("QuestionAuthoredBy", fields: [authoredByStaffId], references: [id], onDelete: Cascade)
+
+  reviewedByStaffId String?
+  reviewedBy        Staff?  @relation("QuestionReviewedBy", fields: [reviewedByStaffId], references: [id], onDelete: SetNull)
+
+  testQuestions CBTTestQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subjectId, topic, difficulty])
+  @@index([status])
+}
+
+model CBTTest {
+  id    String @id @default(cuid())
+  title String
+
+  classSubjectId String
+  classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Restrict)
+
+  timeLimitMinutes        Int
+  attemptsAllowed         Int      @default(1)
+  availableFrom           DateTime
+  availableTo             DateTime
+  passMark                Float    @default(50)
+  instantRelease          Boolean  @default(true)
+  showCorrectAnswersAfter Boolean  @default(false)
+
+  // docs/17 §7 — JAMB mock practice reuses this model; mocks never carry
+  // an assessmentComponentId (they don't feed the results engine).
+  isMockPractice Boolean @default(false)
+
+  // docs/17 §9 — set when this test IS a formal CA/exam component; the
+  // finalized score is written into Stage 5's Score table.
+  assessmentComponentId String?
+  assessmentComponent   AssessmentComponent? @relation(fields: [assessmentComponentId], references: [id], onDelete: SetNull)
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Cascade)
+
+  questions CBTTestQuestion[]
+  attempts  CBTAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([classSubjectId])
+  @@index([availableFrom, availableTo])
+}
+
+model CBTTestQuestion {
+  id String @id @default(cuid())
+
+  testId String
+  test   CBTTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  order  Int
+  points Float @default(1)
+
+  @@unique([testId, questionId])
+}
+
+// questionOrder/optionOrders are the per-student randomization snapshot,
+// generated ONCE at start and persisted — a refresh must never reshuffle.
+//   questionOrder: string[] of questionIds
+//   optionOrders:  { [questionId]: string[] } of shuffled option ids
+model CBTAttempt {
+  id String @id @default(cuid())
+
+  testId String
+  test   CBTTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  status      CBTAttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime         @default(now())
+  submittedAt DateTime?
+
+  questionOrder Json
+  optionOrders  Json
+
+  // Auto-graded on submit; stays null while any ESSAY answer is ungraded.
+  score    Float?
+  maxScore Float
+  // Set once every component (incl. essays) is graded — the release gate.
+  gradedAt DateTime?
+
+  answers              CBTAnswer[]
+  malpracticeIncidents MalpracticeIncident[]
+
+  @@index([testId, studentId])
+  @@index([status])
+}
+
+model CBTAnswer {
+  id String @id @default(cuid())
+
+  attemptId String
+  attempt   CBTAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  questionId String
+
+  // Shape matches the question type (see Question's comment).
+  answer Json
+
+  // Auto-grade result for objective questions; essays stay null until the
+  // teacher grades them (score + feedback).
+  score    Float?
+  feedback String?
+
+  answeredAt DateTime @default(now())
+
+  @@unique([attemptId, questionId])
+}
+
+// ---------------------------------------------------------------------
+// Stage 23 — Exam Officer Logistics: exam timetable/seating, invigilation,
+// external exam body registration, malpractice log, Phase-2 statistics.
+// ---------------------------------------------------------------------
+
+enum InvigilationRole {
+  LEAD
+  ASSISTANT
+}
+
+enum ExternalExamBody {
+  BECE
+  WAEC
+  NECO
+  NABTEB
+  JAMB
+}
+
+enum ExternalExamCandidateStatus {
+  PENDING
+  REGISTERED
+  WITHDRAWN
+}
+
+// A one-off scheduled sitting for a subject+arm — deliberately not reusing
+// TimetableEntry (that's the recurring weekly class schedule); clash
+// detection instead checks an ExamSession's date/time window against both
+// TimetableEntry (regular classes) and other ExamSessions for the same arm,
+// mirroring Stage 16's TimetableService.assertNoConflicts approach rather
+// than writing a second conflict engine from scratch.
+model ExamSession {
+  id String @id @default(cuid())
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  armId String
+  arm   Arm    @relation(fields: [armId], references: [id], onDelete: Cascade)
+
+  date            DateTime // date-only semantics, stored at midnight UTC
+  startTime       String // 24h HH:MM, same convention as Period
+  durationMinutes Int
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  seatAllocations      ExamSeatAllocation[]
+  invigilationDuties   InvigilationDuty[]
+  malpracticeIncidents MalpracticeIncident[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([termId, date])
+  @@index([armId, date])
+}
+
+model ExamHall {
+  id       String @id @default(cuid())
+  name     String @unique
+  capacity Int
+
+  seatAllocations ExamSeatAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExamSeatAllocation {
+  id String @id @default(cuid())
+
+  examSessionId String
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Restrict (not Cascade): deleting a hall while it still has allocations
+  // should force reassignment first, not silently orphan the seating plan.
+  hallId String
+  hall   ExamHall @relation(fields: [hallId], references: [id], onDelete: Restrict)
+
+  seatNumber Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examSessionId, studentId])
+  @@unique([examSessionId, hallId, seatNumber])
+}
+
+model InvigilationDuty {
+  id String @id @default(cuid())
+
+  examSessionId String
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  role InvigilationRole
+
+  createdAt DateTime @default(now())
+
+  @@unique([examSessionId, staffId])
+}
+
+// The first place an SSS subject-combination concept is modeled anywhere in
+// this codebase (Stage 3 never built one) — kept as a plain string array on
+// the candidate rather than a shared Combination model, since nothing else
+// needs to query "who else is doing this combination."
+model ExternalExamCandidate {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  examBody           ExternalExamBody
+  sessionYear        Int
+  subjectCombination String[]
+  registrationNumber String?
+  status             ExternalExamCandidateStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, examBody, sessionYear])
+}
+
+// Deliberately separate from Stage 9's Incident model (different logging
+// role — Exam Officer, not Class Teacher/Admin — different nav, no shared
+// component beyond page layout) but cross-referenceable via
+// relatedDisciplineIncidentId if the Exam Officer escalates it formally.
+// cbtAttemptId is nullable and unused until Stage 22's deferred Phase 3
+// anti-cheating work gives CBT attempts something to log malpractice
+// against — added now so that later work doesn't need another migration.
+model MalpracticeIncident {
+  id String @id @default(cuid())
+
+  examSessionId String?
+  examSession   ExamSession? @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+
+  cbtAttemptId String?
+  cbtAttempt   CBTAttempt? @relation(fields: [cbtAttemptId], references: [id], onDelete: SetNull)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  description String
+  actionTaken String
+
+  loggedByStaffId String
+  loggedByStaff   Staff    @relation(fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+  loggedAt        DateTime @default(now())
+
+  relatedDisciplineIncidentId String?
+  relatedDisciplineIncident   Incident? @relation(fields: [relatedDisciplineIncidentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------
+// Stage 24 — Library Management. Every student and staff member is
+// automatically a member (docs/10-dashboard-librarian.md §3, no
+// separate registration) — Loan/Reservation reference the borrower via
+// a plain borrowerType+borrowerId pair, not a FK, the same polymorphic
+// convention BroadcastLog already uses for targetId/targetRecipientType,
+// since one column can't FK to two different tables.
+// ---------------------------------------------------------------------
+
+enum BorrowerType {
+  STUDENT
+  STAFF
+}
+
+enum ReservationStatus {
+  WAITING
+  AVAILABLE
+  FULFILLED
+  CANCELLED
+}
+
+model Book {
+  id            String  @id @default(cuid())
+  title         String
+  author        String
+  isbn          String? @unique
+  category      String
+  totalCopies   Int
+  // Availability is derived from active (unreturned) loans on every read
+  // (LibraryService.toBookDto), never a maintained counter — simpler and
+  // can't drift, per the backend prompt's own "pick one approach" call.
+  shelfLocation String?
+
+  loans        Loan[]
+  reservations Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model Loan {
+  id     String @id @default(cuid())
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  borrowerType BorrowerType
+  borrowerId   String
+
+  issuedByStaffId String
+  issuedByStaff   Staff  @relation(fields: [issuedByStaffId], references: [id], onDelete: Restrict)
+
+  issuedAt   DateTime  @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+
+  // Null until returned late. Two independent settlement paths (backend
+  // prompt §4): fineSettledAt for cash-in-hand at the desk, fineInvoiceId
+  // for "Add to Fees Invoice" — at most one is ever set for a given fine.
+  fineAmount    Float?
+  fineSettledAt DateTime?
+  fineInvoiceId String?   @unique
+  fineInvoice   Invoice?  @relation(fields: [fineInvoiceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookId])
+  @@index([borrowerType, borrowerId])
+  @@index([returnedAt])
+}
+
+model Reservation {
+  id     String @id @default(cuid())
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  borrowerType BorrowerType
+  borrowerId   String
+
+  reservedAt DateTime          @default(now())
+  status     ReservationStatus @default(WAITING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookId, status])
+  @@index([borrowerType, borrowerId])
+}
+
+// ---------------------------------------------------------------------
+// Stage 25 — Hostel & Transport. Two independently-toggleable
+// sub-modules (a day-only school has no hostel; a school with no bus
+// service has no transport) sharing one physical module for now — kept
+// as separate model clusters below, not entangled, so a later per-school
+// module-toggle setting can hide either half independently.
+// ---------------------------------------------------------------------
+
+enum RollCallSession {
+  MORNING
+  EVENING
+}
+
+enum InventoryCondition {
+  GOOD
+  FAIR
+  DAMAGED
+  LOST
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// --- Part A: Hostel ---
+
+model Hostel {
+  id   String @id @default(cuid())
+  name String @unique
+
+  wardenStaffId String?
+  warden        Staff?  @relation(fields: [wardenStaffId], references: [id], onDelete: SetNull)
+
+  rooms     Room[]
+  rollCalls RollCall[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Room {
+  id       String @id @default(cuid())
+  hostelId String
+  hostel   Hostel @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+
+  roomNumber  String
+  bedCapacity Int
+
+  bedAllocations BedAllocation[]
+  inventoryItems HostelInventoryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostelId, roomNumber])
+}
+
+// No soft-vacate field — freeing a bed deletes the row (see
+// HostelService.vacateBed) rather than tracking history, so a plain
+// (non-partial) unique constraint on both the bed slot and the student
+// is enough: at most one row per bed, at most one row per student, at
+// any moment, with no NULL-handling wrinkle like Attendance's.
+model BedAllocation {
+  id     String @id @default(cuid())
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  bedNumber Int
+
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  allocatedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roomId, bedNumber])
+}
+
+model RollCall {
+  id       String          @id @default(cuid())
+  hostelId String
+  hostel   Hostel          @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  date     DateTime
+  session  RollCallSession
+
+  markedByStaffId String
+  markedBy        Staff  @relation(fields: [markedByStaffId], references: [id], onDelete: Restrict)
+
+  entries RollCallEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostelId, date, session])
+}
+
+model RollCallEntry {
+  id         String   @id @default(cuid())
+  rollCallId String
+  rollCall   RollCall @relation(fields: [rollCallId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  present Boolean
+
+  @@unique([rollCallId, studentId])
+}
+
+// matchedAuthorizedPickupPerson is informational only (see
+// HostelService.logVisitation's name-match against Stage 21's
+// AuthorizedPickupPerson) — visiting isn't the same authorization list
+// as pickup, so a non-match never blocks logging the visit.
+model Visitation {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  visitorName  String
+  relationship String
+  visitedAt    DateTime
+
+  matchedAuthorizedPickupPerson Boolean @default(false)
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation(fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+// roomId (furniture) or studentId (beddings) — support both per the
+// backend prompt, never both set on the same row.
+model HostelInventoryItem {
+  id String @id @default(cuid())
+
+  roomId    String?
+  room      Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  description String
+  condition   InventoryCondition
+  assignedAt  DateTime           @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Narrowly scoped to after-hours/weekend boarder incidents (backend
+// prompt §A.6) — not the general student medical-records system from
+// docs/02-feature-list.md §16, which is a separate, larger, not-yet-staged
+// gap this deliberately does not expand into.
+model BoarderHealthLog {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  occurredAt  DateTime
+  description String
+  actionTaken String
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation(fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+// An APPROVED request covering a given date is what RollCall's
+// unapproved-absence escalation checks for before flagging/notifying.
+model LeaveOutingRequest {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  requestedByGuardianId String
+  requestedBy           Guardian @relation(fields: [requestedByGuardianId], references: [id], onDelete: Cascade)
+
+  fromDate DateTime
+  toDate   DateTime
+  reason   String
+
+  status LeaveRequestStatus @default(PENDING)
+
+  decidedByStaffId String?
+  decidedBy        Staff?    @relation(fields: [decidedByStaffId], references: [id], onDelete: SetNull)
+  decisionNotes    String?
+  decidedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+}
+
+// --- Part B: Transport ---
+
+enum TransportStaffRole {
+  DRIVER
+  CONDUCTOR
+}
+
+enum TransportRun {
+  PICKUP
+  DROPOFF
+}
+
+enum VehicleMaintenanceAlertThreshold {
+  DUE_IN_14_DAYS
+  DUE_IN_7_DAYS
+  OVERDUE
+}
+
+model TransportRoute {
+  id            String @id @default(cuid())
+  name          String @unique
+  busIdentifier String
+
+  driverId    String?
+  driver      TransportStaffRecord? @relation("RouteDriver", fields: [driverId], references: [id], onDelete: SetNull)
+  conductorId String?
+  conductor   TransportStaffRecord? @relation("RouteConductor", fields: [conductorId], references: [id], onDelete: SetNull)
+
+  stops              RouteStop[]
+  studentAssignments StudentRouteAssignment[]
+  attendances        TransportAttendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RouteStop {
+  id      String         @id @default(cuid())
+  routeId String
+  route   TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  stopName        String
+  order           Int
+  // 24h HH:MM, same convention as Period/ExamSession.startTime.
+  approximateTime String?
+
+  studentAssignments StudentRouteAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([routeId, order])
+}
+
+model StudentRouteAssignment {
+  id String @id @default(cuid())
+
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  routeId String
+  route   TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stopId  String
+  stop    RouteStop      @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TransportStaffRecord {
+  id   String             @id @default(cuid())
+  name String
+  role TransportStaffRole
+
+  phone             String
+  licenseNumber     String?
+  licenseExpiryDate DateTime?
+  verified          Boolean   @default(false)
+
+  routesAsDriver    TransportRoute[] @relation("RouteDriver")
+  routesAsConductor TransportRoute[] @relation("RouteConductor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TransportAttendance {
+  id      String         @id @default(cuid())
+  routeId String
+  route   TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  date    DateTime
+  run     TransportRun
+
+  markedByStaffId String
+  markedBy        Staff  @relation(fields: [markedByStaffId], references: [id], onDelete: Restrict)
+
+  entries TransportAttendanceEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([routeId, date, run])
+}
+
+model TransportAttendanceEntry {
+  id           String              @id @default(cuid())
+  attendanceId String
+  attendance   TransportAttendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  boarded   Boolean
+  timestamp DateTime @default(now())
+
+  @@unique([attendanceId, studentId])
+}
+
+model VehicleMaintenanceRecord {
+  id                 String    @id @default(cuid())
+  busIdentifier      String
+  serviceDate        DateTime
+  description        String
+  cost               Float
+  nextServiceDueDate DateTime?
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation(fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+
+  alertLogs VehicleMaintenanceAlertLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([busIdentifier])
+}
+
+// Same "log table + unique constraint absorbs the race, threshold
+// comparison uses <= so a missed day still catches up" shape as
+// FeeReminderLog (see VehicleMaintenanceAlertService).
+model VehicleMaintenanceAlertLog {
+  id                  String                           @id @default(cuid())
+  maintenanceRecordId String
+  maintenanceRecord   VehicleMaintenanceRecord         @relation(fields: [maintenanceRecordId], references: [id], onDelete: Cascade)
+  threshold           VehicleMaintenanceAlertThreshold
+
+  createdAt DateTime @default(now())
+
+  @@unique([maintenanceRecordId, threshold])
+}
+
+// =============================================================================
+// Stage 26 — HR Core
+//
+// Crucial distinction (see the stage's own backend prompt preamble): Staff/
+// StaffRole (Stage 2) cover *academic* role/assignment data Admin manages.
+// Everything below is a separate, additive HR layer keyed off the same
+// staffId — not a replacement or duplicate of those tables.
+// =============================================================================
+
+model StaffEmploymentRecord {
+  id      String @id @default(cuid())
+  staffId String @unique
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  nextOfKinName         String?
+  nextOfKinPhone        String?
+  nextOfKinRelationship String?
+  qualifications        String[] @default([])
+  department            String?
+
+  bankName          String?
+  bankAccountNumber String?
+  bankAccountName   String?
+
+  salaryStructureId String?
+  salaryStructure   SalaryStructure? @relation(fields: [salaryStructureId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum StaffDocumentType {
+  CV
+  CERTIFICATE
+  ID
+  CONTRACT
+  OTHER
+}
+
+model StaffDocument {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  type       StaffDocumentType
+  fileName   String
+  fileUrl    String
+  // Only meaningful for CONTRACT (and occasionally ID) — drives the
+  // nearing-expiry cron alert. Null for documents with no expiry.
+  expiryDate DateTime?
+
+  alertLogs StaffDocumentExpiryAlertLog[]
+
+  uploadedAt DateTime @default(now())
+}
+
+enum DocumentExpiryAlertThreshold {
+  DUE_IN_30_DAYS
+  DUE_IN_7_DAYS
+  OVERDUE
+}
+
+// Same "log table + unique constraint absorbs the race, <= threshold
+// comparison so a missed day still catches up" shape as
+// VehicleMaintenanceAlertLog (Stage 25) / FeeReminderLog.
+model StaffDocumentExpiryAlertLog {
+  id              String                       @id @default(cuid())
+  staffDocumentId String
+  staffDocument   StaffDocument                @relation(fields: [staffDocumentId], references: [id], onDelete: Cascade)
+  threshold       DocumentExpiryAlertThreshold
+
+  createdAt DateTime @default(now())
+
+  @@unique([staffDocumentId, threshold])
+}
+
+enum VacancyStatus {
+  OPEN
+  CLOSED
+}
+
+model JobVacancy {
+  id          String        @id @default(cuid())
+  title       String
+  description String
+  postedAt    DateTime      @default(now())
+  closesAt    DateTime?
+  status      VacancyStatus @default(OPEN)
+
+  postedByStaffId String
+  postedBy        Staff  @relation("JobVacancyPostedBy", fields: [postedByStaffId], references: [id], onDelete: Restrict)
+
+  candidates Candidate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CandidateStage {
+  APPLIED
+  SHORTLISTED
+  INTERVIEWED
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+model Candidate {
+  id        String     @id @default(cuid())
+  vacancyId String
+  vacancy   JobVacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+
+  name      String
+  email     String
+  phone     String?
+  resumeUrl String?
+  stage     CandidateStage @default(APPLIED)
+  appliedAt DateTime       @default(now())
+
+  // Set once by convert-to-staff — a HIRED candidate can only ever be
+  // converted once (enforced in RecruitmentService, this unique constraint
+  // is the DB-level backstop).
+  convertedStaffId String? @unique
+  convertedStaff   Staff?  @relation("CandidateConvertedStaff", fields: [convertedStaffId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeaveType {
+  id                String @id @default(cuid())
+  name              String @unique
+  defaultAnnualDays Float
+
+  balances LeaveBalance[]
+  requests LeaveRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeaveBalance {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  leaveTypeId String
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  year          Int
+  allocatedDays Float
+  usedDays      Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, leaveTypeId, year])
+}
+
+// Reuses Stage 25's LeaveRequestStatus enum (PENDING/APPROVED/REJECTED) —
+// identical semantics, no reason to define a second enum with the same
+// three values for a different table.
+model LeaveRequest {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation("HrLeaveRequestMadeBy", fields: [staffId], references: [id], onDelete: Cascade)
+
+  leaveTypeId String
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  fromDate DateTime
+  toDate   DateTime
+  reason   String
+
+  status LeaveRequestStatus @default(PENDING)
+
+  // Flagged at submission time when the request exceeds the staff member's
+  // remaining balance for that type/year — per the prompt, this warns
+  // rather than hard-blocks, so HR decides with full information instead
+  // of the system silently rejecting a legitimate exception request.
+  exceedsBalance Boolean @default(false)
+
+  decidedByStaffId String?
+  decidedBy        Staff?    @relation("HrLeaveRequestDecidedBy", fields: [decidedByStaffId], references: [id], onDelete: SetNull)
+  decisionNotes    String?
+  decidedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SalaryStructure {
+  id                 String @id @default(cuid())
+  gradeLevel         String @unique
+  basicSalary        Float
+  housingAllowance   Float  @default(0)
+  transportAllowance Float  @default(0)
+  otherAllowances    Float  @default(0)
+
+  employmentRecords StaffEmploymentRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  REVIEWED
+  APPROVED
+}
+
+model PayrollRun {
+  id     String           @id @default(cuid())
+  month  Int
+  year   Int
+  status PayrollRunStatus @default(DRAFT)
+
+  runByStaffId String
+  runBy        Staff  @relation("PayrollRunRunBy", fields: [runByStaffId], references: [id], onDelete: Restrict)
+
+  approvedByStaffId String?
+  approvedBy        Staff?    @relation("PayrollRunApprovedBy", fields: [approvedByStaffId], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+
+  bankScheduleExportedAt DateTime?
+
+  payslips Payslip[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([month, year])
+}
+
+model Payslip {
+  id           String     @id @default(cuid())
+  payrollRunId String
+  payrollRun   PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  grossPay         Float
+  payeDeduction    Float
+  pensionDeduction Float
+  otherDeductions  Float @default(0)
+  netPay           Float
+
+  pdfUrl      String?
+  generatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([payrollRunId, staffId])
+}
+
+model StaffAttendance {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  date     DateTime
+  clockIn  DateTime?
+  clockOut DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, date])
+}
+
+// Deliberately separate from Stage 9's student Incident/DisciplinaryAction
+// — same reasoning Stage 21/23/25 already applied to their own non-student
+// incident logs. A flat log, not a propose/decide workflow: HR logs a
+// warning/action after the fact rather than routing it through approval.
+model StaffDisciplinaryRecord {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation("StaffDisciplinaryRecordOwner", fields: [staffId], references: [id], onDelete: Cascade)
+
+  description String
+  actionTaken String
+
+  loggedByStaffId String
+  loggedBy        Staff    @relation("StaffDisciplinaryRecordLoggedBy", fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+  loggedAt        DateTime @default(now())
+}
+
+model OffboardingChecklist {
+  id      String @id @default(cuid())
+  staffId String @unique
+  staff   Staff  @relation("OffboardingChecklistOwner", fields: [staffId], references: [id], onDelete: Cascade)
+
+  // Fixed 3-item checklist per the prompt's minimal scope — each item is
+  // {key, label, completed, completedAt}. Json array, same
+  // JSON-for-small-flexible-structures convention as enabledModules.
+  items Json
+
+  finalPayAmount Float?
+
+  initiatedByStaffId String
+  initiatedBy        Staff  @relation("OffboardingChecklistInitiatedBy", fields: [initiatedByStaffId], references: [id], onDelete: Restrict)
+
+  initiatedAt DateTime  @default(now())
+  // Set the moment every checklist item is completed — that's also the
+  // instant Staff.isActive flips to false (see OffboardingService).
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// Stage 27 — HR: Appraisals & Training/CPD
+// =============================================================================
+
+// A genuinely school-configurable rubric (not the hardcoded string-constant
+// arrays Stage 5's conduct ratings use) — one row is "the current form",
+// edited once by HR and reused across every AppraisalCycle. Shape (see
+// AppraisalFormService's AppraisalFormDefinition interface):
+// { ratedCategories: [{key,label,maxScore}], freeTextSections: [{key,label}] }
+model AppraisalForm {
+  id       String @id @default(cuid())
+  name     String
+  // { ratedCategories: [{key,label,maxScore}], freeTextSections: [{key,label}] }
+  sections Json
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  cycles AppraisalCycle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AppraisalCycleStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+model AppraisalCycle {
+  id          String               @id @default(cuid())
+  name        String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      AppraisalCycleStatus @default(DRAFT)
+
+  formId String
+  form   AppraisalForm @relation(fields: [formId], references: [id], onDelete: Restrict)
+
+  createdByStaffId String
+  createdBy        Staff  @relation(fields: [createdByStaffId], references: [id], onDelete: Restrict)
+
+  submissions AppraisalSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AppraisalSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  SIGNED_OFF
+}
+
+// One row per staff-member-being-appraised per cycle. reviewerId is set at
+// creation by HR ("reviewer assignment") and is the sole gate on who may
+// later fill in and submit responses — see AppraisalService.assertCanEdit.
+model AppraisalSubmission {
+  id      String         @id @default(cuid())
+  cycleId String
+  cycle   AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  staffId String
+  staff   Staff  @relation("AppraisalSubmissionStaff", fields: [staffId], references: [id], onDelete: Cascade)
+
+  reviewerId String
+  reviewer   Staff  @relation("AppraisalSubmissionReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  // { ratings: {[categoryKey]: number}, freeText: {[sectionKey]: string} }
+  responses Json @default("{}")
+
+  status AppraisalSubmissionStatus @default(DRAFT)
+
+  submittedAt DateTime?
+
+  signedOffByStaffId String?
+  signedOffBy        Staff?    @relation("AppraisalSubmissionSignedOffBy", fields: [signedOffByStaffId], references: [id], onDelete: SetNull)
+  signedOffAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cycleId, staffId])
+}
+
+model TrainingRecord {
+  id             String   @id @default(cuid())
+  staffId        String
+  staff          Staff    @relation("TrainingRecordStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  title          String
+  provider       String
+  completedDate  DateTime
+  certificateUrl String?
+  hoursOrCredits Float?
+
+  loggedByStaffId String
+  loggedBy        Staff  @relation("TrainingRecordLoggedBy", fields: [loggedByStaffId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =============================================================================
+// Stage 28 — WhatsApp, Push, USSD
+// =============================================================================
+
+// One row per browser/device subscription — a user with the PWA installed
+// on two devices has two rows. Polymorphic userId/userType (no FK), same
+// convention as BroadcastLog.targetId/targetRecipientType, since one column
+// can't FK to three different tables (Staff/Guardian/Student all use push).
+model PushSubscription {
+  id       String   @id @default(cuid())
+  userId   String
+  userType UserType
+
+  // The standard Web Push subscription object (endpoint + keys.p256dh +
+  // keys.auth) — stored whole rather than split into columns since it's
+  // only ever read back out verbatim to call web-push's sendNotification.
+  subscription Json
+
+  // The endpoint URL is unique per browser/device registration —
+  // re-subscribing (e.g. after clearing site data) naturally replaces the
+  // old row instead of accumulating dead subscriptions.
+  endpoint String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, userType])
+}
+
+// =============================================================================
+// Stage 29 — Digital ID (see Student.qrToken above), Early-Warning At-Risk Flagging
+// =============================================================================
+
+enum AtRiskReason {
+  ATTENDANCE
+  CA
+  BOTH
+}
+
+// One row per student per at-risk "episode" — created on the transition
+// into the flagged state, updated in place (reason/snapshot only, no
+// re-notify) while the student remains below either configured floor, and
+// resolvedAt is stamped on the transition back out. A student who resolves
+// and later crosses a floor again within the same term gets a NEW row
+// (queried as "the row with resolvedAt IS NULL", not a unique constraint
+// on studentId/termId) so each flagged/resolved cycle notifies once on
+// each end, per the backend prompt's "don't re-notify on every run for an
+// already-flagged, still-at-risk student" requirement.
+model AtRiskFlag {
+  id String @id @default(cuid())
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  termId String
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  reason AtRiskReason
+
+  // Snapshot of the numbers that triggered/last-confirmed this flag —
+  // purely informational (drives the "why" shown in the at-risk views),
+  // not re-derived from history.
+  attendanceRate Float?
+  caAverage      Float?
+
+  flaggedAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([resolvedAt])
+}
