@@ -6,3 +6,12 @@
 
 # macOS Finder metadata
 .DS_Store
+
+# Local scratch files holding real credentials. Never commit these — the repo
+# is private, but a private repo is not a secret store: collaborators, forks,
+# and any later flip to public all expose whatever is in the history, and
+# `git add -A` sweeps up untracked files at the root without asking.
+password.md
+secrets.md
+credentials.md
+*.secrets
