@@ -3,3 +3,6 @@
 # Local MinIO data dir (dev-only S3-compatible object storage) — see
 # docs/19-unique-differentiators.md / api StorageService setup.
 .minio-data/
+
+# macOS Finder metadata
+.DS_Store

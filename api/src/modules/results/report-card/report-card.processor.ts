@@ -3,6 +3,7 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import type { Browser, Page } from 'puppeteer';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { puppeteerLaunchOptions } from '../../../common/utils/puppeteer-launch-options';
 import { StorageService } from '../../../common/storage/storage.service';
 import { ResultsService } from '../results.service';
 import { REPORT_CARDS_QUEUE, ReportCardJobData } from './report-card.constants';
@@ -139,7 +140,7 @@ export class ReportCardProcessor extends WorkerHost implements OnModuleDestroy {
       // normal runtime and Jest (run with --experimental-vm-modules — see
       // the "test:e2e" script in package.json).
       this.browserPromise = import('puppeteer').then(({ default: puppeteer }) =>
-        puppeteer.launch({ headless: true }),
+        puppeteer.launch(puppeteerLaunchOptions()),
       );
     }
     return this.browserPromise;

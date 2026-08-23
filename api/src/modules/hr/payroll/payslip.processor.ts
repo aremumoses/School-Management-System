@@ -3,6 +3,7 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import type { Browser, Page } from 'puppeteer';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { puppeteerLaunchOptions } from '../../../common/utils/puppeteer-launch-options';
 import { StorageService } from '../../../common/storage/storage.service';
 import { PayrollService } from '../payroll.service';
 import { PAYSLIPS_QUEUE, PayslipJobData } from './payslip.constants';
@@ -101,7 +102,7 @@ export class PayslipProcessor extends WorkerHost implements OnModuleDestroy {
       // Dynamic import — see ReceiptProcessor's identical comment;
       // puppeteer's dependency tree is ESM-only.
       this.browserPromise = import('puppeteer').then(({ default: puppeteer }) =>
-        puppeteer.launch({ headless: true }),
+        puppeteer.launch(puppeteerLaunchOptions()),
       );
     }
     return this.browserPromise;
