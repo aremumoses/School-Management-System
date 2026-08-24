@@ -15,8 +15,14 @@ services:
     type: web
     runtime: docker
     plan: free
-    rootDir: api
-    dockerfilePath: ./Dockerfile
+    # Both paths are relative to the REPOSITORY ROOT, not to each other and not
+    # to a rootDir — so rootDir is deliberately not set here, which would make
+    # it ambiguous which of the two they were resolved against.
+    # dockerContext must be api/ because the Dockerfile's first instruction is
+    # `COPY package*.json ./`, and there is no package.json at the repo root:
+    # a repo-root context fails on that line before doing anything else.
+    dockerfilePath: api/Dockerfile
+    dockerContext: api
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
