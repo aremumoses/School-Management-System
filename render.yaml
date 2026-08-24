@@ -66,8 +66,11 @@ services:
         sync: false
       - key: STORAGE_PUBLIC_URL_BASE
         sync: false
+      # Must match the Supabase project's real region: the S3 protocol signs
+        # every request with it, so a wrong value fails auth even when the key
+        # and secret are perfectly correct.
       - key: STORAGE_REGION
-        value: us-east-1
+        value: eu-west-1
       - key: STORAGE_FORCE_PATH_STYLE
         value: "true"
 
