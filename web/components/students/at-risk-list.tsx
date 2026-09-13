@@ -22,6 +22,10 @@ function formatFlaggedDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+function initials(firstName: string, lastName: string): string {
+  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
+}
+
 export function AtRiskList({ students }: { students: AtRiskStudentDto[] }) {
   if (students.length === 0) {
     return (
@@ -42,14 +46,20 @@ export function AtRiskList({ students }: { students: AtRiskStudentDto[] }) {
   return (
     <ul className="divide-y divide-border">
       {students.map((s) => (
-        <li key={s.studentId} className="flex items-center justify-between gap-3 py-2.5">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
+        <li key={s.studentId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+          <span
+            aria-hidden="true"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary dark:text-heading"
+          >
+            {initials(s.firstName, s.lastName)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-heading">
               {s.firstName} {s.lastName}
             </p>
             <p className="font-mono text-xs text-muted-foreground">{s.admissionNumber}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
             <Badge variant={REASON_VARIANT[s.reason]}>{REASON_LABEL[s.reason]}</Badge>
             <span className="text-xs text-muted-foreground">
               Flagged {formatFlaggedDate(s.flaggedAt)}

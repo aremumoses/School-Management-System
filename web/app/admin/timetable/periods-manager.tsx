@@ -1,15 +1,26 @@
 'use client';
 
-import { ChevronDown, ChevronRight, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Clock, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createPeriod, deletePeriod } from '@/lib/actions/timetable';
 import type { PeriodDto } from '@/lib/types/timetable';
+import { cn } from '@/lib/utils';
+
+const PANEL_ID = 'school-periods-panel';
+
+/** "6 slots · 08:00–14:00", from the earliest start to the latest end. */
+function periodsSummary(periods: PeriodDto[]): string {
+  if (periods.length === 0) return 'No periods yet — add the time slots of the school day';
+  // HH:MM strings sort correctly as text.
+  const start = periods.reduce((min, p) => (p.startTime < min ? p.startTime : min), periods[0].startTime);
+  const end = periods.reduce((max, p) => (p.endTime > max ? p.endTime : max), periods[0].endTime);
+  return `${periods.length} slot${periods.length === 1 ? '' : 's'} · ${start}–${end}`;
+}
 
 /** School-wide period (time slot) config — collapsed by default once slots exist. */
 export function PeriodsManager({ periods }: { periods: PeriodDto[] }) {
@@ -60,52 +71,56 @@ export function PeriodsManager({ periods }: { periods: PeriodDto[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 py-3">
-        <CardTitle className="text-base">
-          School Periods{' '}
-          <span className="text-sm font-normal text-muted-foreground">
-            ({periods.length} slot{periods.length === 1 ? '' : 's'})
-          </span>
-        </CardTitle>
-        <Button variant="ghost" size="sm" onClick={() => setExpanded((e) => !e)}>
-          {expanded ? (
-            <ChevronDown className="size-4" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="size-4" aria-hidden="true" />
-          )}
-          {expanded ? 'Hide' : 'Manage'}
-        </Button>
-      </CardHeader>
+    <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={expanded ? PANEL_ID : undefined}
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset sm:px-6 sm:py-5"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Clock className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-semibold text-heading">School Periods</span>
+          <span className="block text-sm text-muted-foreground">{periodsSummary(periods)}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary dark:text-foreground">
+          <span className="hidden sm:inline">{expanded ? 'Hide' : 'Manage'}</span>
+          <ChevronDown
+            className={cn('size-5 transition-transform', expanded && 'rotate-180')}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+
       {expanded && (
-        <CardContent className="space-y-4">
-          {periods.length === 0 && (
-            <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
-              No periods defined yet.
-            </p>
-          )}
+        <div id={PANEL_ID} className="border-t border-border">
           {periods.length > 0 && (
-            <ul className="divide-y divide-border rounded-lg border border-border">
+            <ul className="divide-y divide-border border-b border-border">
               {periods.map((period) => (
-                <li key={period.id} className="flex items-center justify-between px-3 py-2">
-                  <span className="text-sm text-foreground">
-                    {period.name}{' '}
-                    <span className="tabular-nums text-xs text-muted-foreground">
-                      {period.startTime}–{period.endTime}
-                    </span>
+                <li key={period.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Clock className="size-4" aria-hidden="true" />
                   </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-heading">{period.name}</p>
+                    <p className="text-sm tabular-nums text-muted-foreground">
+                      {period.startTime} – {period.endTime}
+                    </p>
+                  </div>
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    size="icon-sm"
                     onClick={() => void handleDelete(period.id)}
                     disabled={deletingId === period.id}
                     aria-label={`Delete ${period.name}`}
                   >
                     {deletingId === period.id ? (
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <Trash2 className="size-3.5" aria-hidden="true" />
+                      <Trash2 className="size-4 text-destructive" aria-hidden="true" />
                     )}
                   </Button>
                 </li>
@@ -113,54 +128,63 @@ export function PeriodsManager({ periods }: { periods: PeriodDto[] }) {
             </ul>
           )}
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="period-name" className="text-xs">
-                Name
-              </Label>
-              <Input
-                id="period-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Period 1"
-                className="h-8 w-36 text-sm"
-              />
+          <div className="space-y-4 px-5 py-5 sm:px-6">
+            {periods.length === 0 && (
+              <p className="rounded-xl border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
+                No periods defined yet.
+              </p>
+            )}
+            <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">
+              <div className="space-y-2 sm:w-48">
+                <FormFieldLabel htmlFor="period-name" required>
+                  Name
+                </FormFieldLabel>
+                <Input
+                  id="period-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Period 1"
+                  className="h-10"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <div className="space-y-2 sm:w-36">
+                  <FormFieldLabel htmlFor="period-start" required>
+                    Starts
+                  </FormFieldLabel>
+                  <Input
+                    id="period-start"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2 sm:w-36">
+                  <FormFieldLabel htmlFor="period-end" required>
+                    Ends
+                  </FormFieldLabel>
+                  <Input
+                    id="period-end"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+              </div>
+              <Button onClick={() => void handleAdd()} disabled={isSaving} className="h-10 px-4">
+                {isSaving ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Plus className="size-4" aria-hidden="true" />
+                )}
+                Add Period
+              </Button>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="period-start" className="text-xs">
-                Starts
-              </Label>
-              <Input
-                id="period-start"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 w-28 text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="period-end" className="text-xs">
-                Ends
-              </Label>
-              <Input
-                id="period-end"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="h-8 w-28 text-sm"
-              />
-            </div>
-            <Button size="sm" onClick={() => void handleAdd()} disabled={isSaving}>
-              {isSaving ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-              ) : (
-                <Plus className="size-3.5" aria-hidden="true" />
-              )}
-              Add Period
-            </Button>
           </div>
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </section>
   );
 }

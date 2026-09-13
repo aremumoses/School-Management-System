@@ -39,7 +39,7 @@ export function StudentProfileTabs({
       {/* overflow-x-auto: 6 tab labels can be wider than a 375px viewport —
           this scrolls just the tab bar instead of the whole page. */}
       <div className="overflow-x-auto">
-        <TabsList className="w-full sm:w-fit">
+        <TabsList variant="pill" className="w-max min-w-full justify-start sm:min-w-0">
           <TabsTrigger value="bio-data">Bio-data</TabsTrigger>
           <TabsTrigger value="guardians">Guardians</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -49,16 +49,16 @@ export function StudentProfileTabs({
         </TabsList>
       </div>
 
-      <TabsContent value="bio-data" className="pt-4">
+      <TabsContent value="bio-data" className="pt-5">
         <BioDataTab student={student} />
       </TabsContent>
-      <TabsContent value="guardians" className="pt-4">
+      <TabsContent value="guardians" className="pt-5">
         <GuardiansTab student={student} allGuardians={guardians} />
       </TabsContent>
-      <TabsContent value="documents" className="pt-4">
+      <TabsContent value="documents" className="pt-5">
         <DocumentsTab student={student} />
       </TabsContent>
-      <TabsContent value="academic-history" className="pt-4">
+      <TabsContent value="academic-history" className="pt-5">
         <AcademicHistoryTab
           studentId={student.id}
           enrollments={enrollments}
@@ -66,14 +66,14 @@ export function StudentProfileTabs({
           sessions={sessions}
         />
       </TabsContent>
-      <TabsContent value="attendance" className="pt-4">
+      <TabsContent value="attendance" className="pt-5">
         <AttendanceTab
           termName={currentTermName}
           summary={attendanceSummary}
           history={attendanceHistory}
         />
       </TabsContent>
-      <TabsContent value="id-card" className="pt-4">
+      <TabsContent value="id-card" className="pt-5">
         <IdCardTab student={student} qrDataUrl={qrDataUrl} />
       </TabsContent>
     </Tabs>

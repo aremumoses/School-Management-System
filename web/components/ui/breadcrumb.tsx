@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils';
  * Breadcrumb trail for the app header (design system §5).
  *
  * Deliberately tiny and presentational — the shells compute the trail from
- * the nav config and pass it in, so there is no path-parsing logic here.
+ * the nav config and pass it in, so there is no path-parsing logic here. The
+ * current page doubles as the header's title, Akademi-style, so it is set
+ * larger than the ancestors before it.
  */
 
 export interface Crumb {
@@ -19,11 +21,11 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
 
   return (
     <nav aria-label="Breadcrumb" className={cn('min-w-0', className)}>
-      <ol className="flex min-w-0 items-center gap-1 text-sm">
+      <ol className="flex min-w-0 items-center gap-1.5">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
-            <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
+            <li key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1.5">
               {index > 0 && (
                 <ChevronRight
                   className="size-3.5 shrink-0 text-muted-foreground/60"
@@ -33,7 +35,7 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="truncate rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="truncate rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {item.label}
                 </Link>
@@ -41,7 +43,9 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
                 <span
                   className={cn(
                     'truncate',
-                    isLast ? 'font-medium text-foreground' : 'text-muted-foreground',
+                    isLast
+                      ? 'text-lg font-semibold text-heading md:text-xl'
+                      : 'text-sm text-muted-foreground',
                   )}
                   aria-current={isLast ? 'page' : undefined}
                 >

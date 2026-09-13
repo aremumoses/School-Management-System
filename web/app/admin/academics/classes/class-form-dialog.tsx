@@ -6,6 +6,7 @@ import { type ReactElement, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 const classSchema = z.object({
   name: z.string().min(1, 'Class name is required').max(50),
@@ -71,15 +71,18 @@ export function ClassFormDialog({
       <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
           <div className="space-y-2">
-            <Label htmlFor="class-name">Class Name</Label>
+            <FormFieldLabel htmlFor="class-name" required>
+              Class Name
+            </FormFieldLabel>
             <Input
               id="class-name"
               placeholder="JSS1"
+              className="h-10"
               aria-invalid={Boolean(errors.name)}
               {...register('name')}
             />
@@ -91,10 +94,13 @@ export function ClassFormDialog({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="class-level">Level</Label>
+            <FormFieldLabel htmlFor="class-level" required>
+              Level
+            </FormFieldLabel>
             <Input
               id="class-level"
               type="number"
+              className="h-10"
               aria-invalid={Boolean(errors.level)}
               {...register('level', { valueAsNumber: true })}
             />
@@ -109,7 +115,7 @@ export function ClassFormDialog({
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

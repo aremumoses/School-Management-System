@@ -19,7 +19,7 @@ export default async function StaffDirectoryPage() {
   const staff = await apiFetch<StaffDto[]>('/staff');
 
   const actions = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" render={<a href="/api/staff/export" download />}>
         <Download className="size-4" aria-hidden="true" />
         Export Excel

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createSession } from '@/lib/actions/sessions';
 
 const TERM_NAMES = ['First', 'Second', 'Third'] as const;
@@ -89,18 +89,21 @@ export function NewSessionDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Academic Session</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">New Academic Session</DialogTitle>
           <DialogDescription>
             Scaffold all 3 terms for the session in one step. You can mark one as current
             afterward.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
           <div className="space-y-2">
-            <Label htmlFor="session-name">Session Name</Label>
+            <FormFieldLabel htmlFor="session-name" required>
+              Session Name
+            </FormFieldLabel>
             <Input
               id="session-name"
               placeholder="2026/2027"
+              className="h-10"
               aria-invalid={Boolean(errors.name)}
               {...register('name')}
             />
@@ -112,23 +115,31 @@ export function NewSessionDialog() {
             )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
             {TERM_NAMES.map((name, index) => (
-              <div key={name} className="space-y-1.5">
-                <Label className="text-sm font-medium">{name} Term</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="date"
-                    aria-label={`${name} term start date`}
-                    aria-invalid={Boolean(errors.terms?.[index]?.startDate)}
-                    {...register(`terms.${index}.startDate`)}
-                  />
-                  <Input
-                    type="date"
-                    aria-label={`${name} term end date`}
-                    aria-invalid={Boolean(errors.terms?.[index]?.endDate)}
-                    {...register(`terms.${index}.endDate`)}
-                  />
+              <div key={name} className="space-y-2">
+                <FormFieldLabel required>{name} Term</FormFieldLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Starts</span>
+                    <Input
+                      type="date"
+                      className="h-10"
+                      aria-label={`${name} term start date`}
+                      aria-invalid={Boolean(errors.terms?.[index]?.startDate)}
+                      {...register(`terms.${index}.startDate`)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Ends</span>
+                    <Input
+                      type="date"
+                      className="h-10"
+                      aria-label={`${name} term end date`}
+                      aria-invalid={Boolean(errors.terms?.[index]?.endDate)}
+                      {...register(`terms.${index}.endDate`)}
+                    />
+                  </div>
                 </div>
                 {(errors.terms?.[index]?.startDate || errors.terms?.[index]?.endDate) && (
                   <p className="flex items-center gap-1 text-sm text-destructive">
@@ -148,7 +159,7 @@ export function NewSessionDialog() {
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting ? 'Creating…' : 'Create Session'}
             </Button>
           </DialogFooter>

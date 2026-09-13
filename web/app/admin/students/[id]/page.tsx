@@ -1,12 +1,12 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { getAttendanceSummary, getStudentAttendanceHistory } from '@/lib/actions/attendance';
 import { ApiError, apiFetch } from '@/lib/api';
 import { generateQrDataUrl } from '@/lib/qr-code';
 import type { AcademicSessionDto, ClassDto, TermDto } from '@/lib/types/academic';
 import type { EnrollmentDto, GuardianDto, StudentDetailDto } from '@/lib/types/students';
+import { StudentProfileHero } from './student-profile-hero';
 import { StudentProfileTabs } from './student-profile-tabs';
 
 export default async function StudentProfilePage({
@@ -43,18 +43,15 @@ export default async function StudentProfilePage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-3">
         <Link
           href="/admin/students"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           Back to Student Directory
         </Link>
-        <PageHeader
-          title={`${student.firstName} ${student.lastName}`}
-          description={`Admission No. ${student.admissionNumber}`}
-        />
+        <StudentProfileHero student={student} />
       </div>
 
       <StudentProfileTabs

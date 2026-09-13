@@ -83,17 +83,17 @@ export function StudentFilters({
   );
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="relative w-full max-w-xs">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-card p-4 sm:p-5 dark:ring-1 dark:ring-foreground/10">
+      <div className="relative w-full sm:max-w-xs">
         <Search
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
         />
         <Input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search name or admission number…"
-          className="pl-8"
+          className="h-10 pl-10"
           aria-label="Search students"
         />
       </div>
@@ -103,7 +103,7 @@ export function StudentFilters({
         onValueChange={(value) => updateParams({ classId: value || undefined, armId: undefined })}
         items={classes.map((klass) => ({ value: klass.id, label: klass.name }))}
       >
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-40 data-[size=default]:h-10">
           <SelectValue placeholder="Class" />
         </SelectTrigger>
         <SelectContent>
@@ -121,7 +121,7 @@ export function StudentFilters({
         onValueChange={(value) => updateParams({ armId: value || undefined })}
         items={armsForSelectedClass.map((arm) => ({ value: arm.id, label: arm.name }))}
       >
-        <SelectTrigger className="w-36">
+        <SelectTrigger className="w-36 data-[size=default]:h-10">
           <SelectValue placeholder="Arm" />
         </SelectTrigger>
         <SelectContent>
@@ -138,7 +138,7 @@ export function StudentFilters({
         onValueChange={(value) => updateParams({ sessionId: value || undefined })}
         items={sessions.map((session) => ({ value: session.id, label: session.name }))}
       >
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-40 data-[size=default]:h-10">
           <SelectValue placeholder="Session" />
         </SelectTrigger>
         <SelectContent>
@@ -157,7 +157,7 @@ export function StudentFilters({
         }
         items={STATUS_OPTIONS.map((status) => ({ value: status, label: ENROLLMENT_STATUS_LABELS[status] }))}
       >
-        <SelectTrigger className="w-36">
+        <SelectTrigger className="w-36 data-[size=default]:h-10">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -173,7 +173,7 @@ export function StudentFilters({
           component, which is itself a <label>; nesting two <label>s is
           invalid HTML and can double-fire the checkbox toggle in some
           browsers. */}
-      <label className="flex items-center gap-2 pb-1.5 text-sm">
+      <label className="flex items-center gap-2 text-sm text-heading">
         <Checkbox
           checked={initial.includeInactive ?? false}
           onCheckedChange={(checked) => updateParams({ includeInactive: checked === true })}

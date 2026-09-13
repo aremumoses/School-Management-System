@@ -15,8 +15,10 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  ACTIVE_DOT_PROPS,
   AXIS_TICK,
   ChartCard,
+  DOT_PROPS,
   GRID_PROPS,
   LEGEND_PROPS,
   SERIES,
@@ -43,7 +45,7 @@ export interface ClassCollectionPoint {
   outstanding: number;
 }
 
-/** Attendance rate per term. One series, so no legend — the title names it. */
+/** Attendance rate per term. One series, so slot 1 and no legend — the title names it. */
 export function AttendanceTrendPanel({ points }: { points: TrendPoint[] }) {
   return (
     <ChartCard
@@ -55,7 +57,7 @@ export function AttendanceTrendPanel({ points }: { points: TrendPoint[] }) {
       <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
         <defs>
           <linearGradient id="attendanceFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={SERIES[0]} stopOpacity={0.22} />
+            <stop offset="0%" stopColor={SERIES[0]} stopOpacity={0.12} />
             <stop offset="100%" stopColor={SERIES[0]} stopOpacity={0.02} />
           </linearGradient>
         </defs>
@@ -79,8 +81,8 @@ export function AttendanceTrendPanel({ points }: { points: TrendPoint[] }) {
           stroke={SERIES[0]}
           strokeWidth={2}
           fill="url(#attendanceFill)"
-          dot={{ r: 3, strokeWidth: 0, fill: SERIES[0] }}
-          activeDot={{ r: 5 }}
+          dot={{ ...DOT_PROPS, fill: SERIES[0] }}
+          activeDot={{ ...ACTIVE_DOT_PROPS, fill: SERIES[0] }}
         />
       </AreaChart>
     </ChartCard>
@@ -113,10 +115,10 @@ export function PerformanceTrendPanel({ points }: { points: TrendPoint[] }) {
         <Line
           type="monotone"
           dataKey="value"
-          stroke={SERIES[1]}
+          stroke={SERIES[0]}
           strokeWidth={2}
-          dot={{ r: 3, strokeWidth: 0, fill: SERIES[1] }}
-          activeDot={{ r: 5 }}
+          dot={{ ...DOT_PROPS, fill: SERIES[0] }}
+          activeDot={{ ...ACTIVE_DOT_PROPS, fill: SERIES[0] }}
         />
       </LineChart>
     </ChartCard>
@@ -126,7 +128,8 @@ export function PerformanceTrendPanel({ points }: { points: TrendPoint[] }) {
 /**
  * Collected vs outstanding per class. Two series, so a legend is mandatory —
  * and the bars are stacked because the pair sums to a real quantity (what
- * the class was invoiced), which grouped bars would hide.
+ * the class was invoiced), which grouped bars would hide. Slots 1–2: the only
+ * slots that clear 3:1 as a fill on the white card.
  */
 export function FeeCollectionPanel({ rows }: { rows: ClassCollectionPoint[] }) {
   return (
@@ -165,19 +168,19 @@ export function FeeCollectionPanel({ rows }: { rows: ClassCollectionPoint[] }) {
           dataKey="collected"
           name="Collected"
           stackId="fees"
-          fill={SERIES[2]}
+          fill={SERIES[0]}
           stroke="var(--color-card)"
           strokeWidth={2}
-          maxBarSize={72}
+          maxBarSize={24}
         />
         <Bar
           dataKey="outstanding"
           name="Outstanding"
           stackId="fees"
-          fill={SERIES[3]}
+          fill={SERIES[1]}
           stroke="var(--color-card)"
           strokeWidth={2}
-          maxBarSize={72}
+          maxBarSize={24}
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
@@ -203,7 +206,7 @@ export function StudentsByClassPanel({ rows }: { rows: { className: string; coun
         <XAxis dataKey="className" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} />
         <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
         <Tooltip {...TOOLTIP_PROPS} formatter={(value) => [`${value}`, 'Students']} />
-        <Bar dataKey="count" name="Students" radius={[4, 4, 0, 0]} maxBarSize={44}>
+        <Bar dataKey="count" name="Students" radius={[4, 4, 0, 0]} maxBarSize={24}>
           {rows.map((row) => (
             <Cell key={row.className} fill={SERIES[0]} />
           ))}

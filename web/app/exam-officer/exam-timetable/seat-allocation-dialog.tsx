@@ -60,7 +60,7 @@ function SeatEditor({
       <select
         value={hallId}
         onChange={(e) => setHallId(e.target.value)}
-        className="h-8 rounded-md border border-border bg-background px-1.5 text-xs"
+        className="h-8 rounded-md border border-border bg-card px-1.5 text-xs"
         aria-label="Hall"
       >
         {halls.map((h) => (

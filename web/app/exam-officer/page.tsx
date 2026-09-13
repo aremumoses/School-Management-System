@@ -120,7 +120,7 @@ export default async function ExamOfficerHomePage() {
           value={withStatus.length || '—'}
           description={currentTerm ? `${currentTerm.name} term` : 'No current term'}
           icon={Table2}
-          variant="violet"
+          variant="brand"
           href="/exam-officer/result-approvals"
         />
         <StatCard
@@ -144,7 +144,7 @@ export default async function ExamOfficerHomePage() {
           value={publishedCount}
           description={returnedCount > 0 ? `${returnedCount} returned for fixes` : 'Released to parents'}
           icon={FileBadge}
-          variant={returnedCount > 0 ? 'warning' : 'blue'}
+          variant={returnedCount > 0 ? 'warning' : 'coral'}
           href="/exam-officer/transcripts"
         />
       </div>

@@ -12,8 +12,10 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  ACTIVE_DOT_PROPS,
   AXIS_TICK,
   ChartCard,
+  DOT_PROPS,
   GRID_PROPS,
   LEGEND_PROPS,
   SERIES,
@@ -44,7 +46,7 @@ export function CollectionRatePanel({
       <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
         <defs>
           <linearGradient id="collectionFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={SERIES[0]} stopOpacity={0.22} />
+            <stop offset="0%" stopColor={SERIES[0]} stopOpacity={0.12} />
             <stop offset="100%" stopColor={SERIES[0]} stopOpacity={0.02} />
           </linearGradient>
         </defs>
@@ -68,8 +70,8 @@ export function CollectionRatePanel({
           stroke={SERIES[0]}
           strokeWidth={2}
           fill="url(#collectionFill)"
-          dot={{ r: 3, strokeWidth: 0, fill: SERIES[0] }}
-          activeDot={{ r: 5 }}
+          dot={{ ...DOT_PROPS, fill: SERIES[0] }}
+          activeDot={{ ...ACTIVE_DOT_PROPS, fill: SERIES[0] }}
         />
       </AreaChart>
     </ChartCard>
@@ -79,7 +81,7 @@ export function CollectionRatePanel({
 /**
  * What each class owes against what it has paid. Stacked because the pair
  * sums to a real quantity — the class's total invoice — which grouped bars
- * would obscure.
+ * would obscure. Slots 1–2: the only slots that clear 3:1 as a fill.
  */
 export function OutstandingByClassPanel({
   rows,
@@ -114,19 +116,19 @@ export function OutstandingByClassPanel({
           dataKey="collected"
           name="Collected"
           stackId="fees"
-          fill={SERIES[2]}
+          fill={SERIES[0]}
           stroke="var(--color-card)"
           strokeWidth={2}
-          maxBarSize={72}
+          maxBarSize={24}
         />
         <Bar
           dataKey="outstanding"
           name="Outstanding"
           stackId="fees"
-          fill={SERIES[3]}
+          fill={SERIES[1]}
           stroke="var(--color-card)"
           strokeWidth={2}
-          maxBarSize={72}
+          maxBarSize={24}
           radius={[4, 4, 0, 0]}
         />
       </BarChart>

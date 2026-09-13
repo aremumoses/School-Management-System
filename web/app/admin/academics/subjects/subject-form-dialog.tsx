@@ -6,6 +6,7 @@ import { type ReactElement, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 const subjectSchema = z.object({
   name: z.string().min(1, 'Subject name is required').max(100),
@@ -71,15 +71,18 @@ export function SubjectFormDialog({
       <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
           <div className="space-y-2">
-            <Label htmlFor="subject-name">Subject Name</Label>
+            <FormFieldLabel htmlFor="subject-name" required>
+              Subject Name
+            </FormFieldLabel>
             <Input
               id="subject-name"
               placeholder="Mathematics"
+              className="h-10"
               aria-invalid={Boolean(errors.name)}
               {...register('name')}
             />
@@ -91,11 +94,11 @@ export function SubjectFormDialog({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="subject-code">Code (optional)</Label>
-            <Input id="subject-code" placeholder="MTH" {...register('code')} />
+            <FormFieldLabel htmlFor="subject-code">Code (optional)</FormFieldLabel>
+            <Input id="subject-code" placeholder="MTH" className="h-10" {...register('code')} />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

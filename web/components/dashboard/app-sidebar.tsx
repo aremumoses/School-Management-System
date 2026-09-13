@@ -19,18 +19,24 @@ import { cn } from '@/lib/utils';
 
 function Brand({ label, collapsed }: { label: string; collapsed: boolean }) {
   return (
-    <div className={cn('flex h-16 shrink-0 items-center gap-2.5', collapsed ? 'px-3' : 'px-4')}>
-      {/* Solid brand mark — deliberately uses --primary directly rather than
-          --sidebar-primary, since the latter is a light tint reserved for the
-          active-nav pill; the logo should read as a solid brand chip
-          regardless of the sidebar's own theme. */}
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-[13px] font-bold tracking-tight text-primary-foreground shadow-sm">
+    <div
+      className={cn(
+        'flex h-[4.5rem] shrink-0 items-center gap-3',
+        collapsed ? 'justify-center px-3' : 'px-6',
+      )}
+    >
+      {/* Coral mark, matching the login panel. Decorative: the label beside it
+          (or the page title, in the rail) carries the name. */}
+      <div
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-coral text-[0.8125rem] font-bold tracking-tight text-brand-foreground"
+      >
         SMS
       </div>
       {!collapsed && (
         <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">{label}</p>
-          <p className="truncate text-[11px] text-muted-foreground">School OS</p>
+          <p className="truncate text-lg font-semibold text-sidebar-accent-foreground">{label}</p>
+          <p className="truncate text-xs text-sidebar-foreground/80">School OS</p>
         </div>
       )}
     </div>
@@ -63,17 +69,19 @@ function NavLink({
       // even if JS for the tooltip layer hasn't hydrated yet.
       title={collapsed ? item.label : undefined}
       className={cn(
-        'group relative flex items-center rounded-lg text-sm font-medium transition-colors duration-[--duration-fast] ease-[--ease-out-soft] focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
-        collapsed ? 'h-10 w-10 justify-center' : 'gap-2.5 px-2.5 py-2',
+        'group relative flex items-center rounded-md text-sm transition-colors duration-[--duration-fast] ease-[--ease-out-soft] focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
+        collapsed ? 'size-11 justify-center' : 'gap-3 px-4 py-2.5',
         active
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          ? 'bg-sidebar-primary font-medium text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
       )}
     >
       <Icon
         className={cn(
           'size-[18px] shrink-0 transition-colors',
-          active ? 'text-sidebar-primary-foreground' : 'text-muted-foreground group-hover:text-sidebar-accent-foreground',
+          active
+            ? 'text-sidebar-primary-foreground'
+            : 'text-sidebar-foreground/80 group-hover:text-sidebar-accent-foreground',
         )}
         aria-hidden="true"
       />
@@ -100,9 +108,9 @@ export function AppSidebarNav({
   const groups = groupNavItems(navItems);
 
   return (
-    <nav className={cn('flex flex-col gap-5 pb-6', collapsed ? 'items-center px-2' : 'px-3')}>
+    <nav className={cn('flex flex-col gap-5 pt-2 pb-6', collapsed ? 'items-center px-2' : 'px-4')}>
       {groups.map((group) => (
-        <div key={group.label} className={cn('flex flex-col gap-0.5', collapsed && 'items-center')}>
+        <div key={group.label} className={cn('flex flex-col gap-1', collapsed && 'items-center')}>
           {collapsed ? (
             // A visible heading would not fit the rail, but the grouping is
             // still real structure — keep it for screen readers and mark the
@@ -112,7 +120,7 @@ export function AppSidebarNav({
               <div className="mb-1.5 h-px w-6 bg-sidebar-border first:hidden" aria-hidden="true" />
             </>
           ) : (
-            <p className="px-2.5 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
+            <p className="px-4 pb-1 text-[11px] font-semibold tracking-wider text-sidebar-foreground/80 uppercase">
               {group.label}
             </p>
           )}

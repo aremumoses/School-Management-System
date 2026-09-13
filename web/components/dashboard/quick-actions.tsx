@@ -29,23 +29,23 @@ export function QuickActions({
   if (actions.length === 0) return null;
 
   return (
-    <Card className="rounded-2xl">
+    <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-heading">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {actions.map((action) => (
             <Link
               key={action.href + action.label}
               href={action.href}
-              className="group flex min-h-[4.5rem] items-start gap-3 rounded-xl border border-border/70 p-3 transition-all duration-[--duration-base] ease-[--ease-out-soft] hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/60 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="group flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-border p-3 transition-colors duration-[--duration-base] ease-[--ease-out-soft] hover:border-primary/40 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <action.icon className="size-[18px]" aria-hidden="true" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm leading-snug font-medium text-foreground">
+                <span className="block text-sm leading-snug font-semibold text-heading">
                   {action.label}
                 </span>
                 {action.hint && (

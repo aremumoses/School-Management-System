@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { EmptyState } from './empty-state';
 
 /**
- * Recent activity timeline — new-design §6.
+ * Recent activity — new-design §6, laid out as Akademi's message list.
  *
  * Built on the existing audit log rather than a new "activity" table: every
  * event §6 asks for (student registered, payment received, result published,
@@ -60,7 +60,7 @@ const ACTION_ICONS: { prefix: string; icon: LucideIcon; tint: string; verb: stri
   { prefix: 'APPROVE', icon: BookCheck, tint: 'bg-info-soft text-info-soft-foreground', verb: 'approved' },
   { prefix: 'PUBLISH', icon: Megaphone, tint: 'bg-info-soft text-info-soft-foreground', verb: 'published' },
   { prefix: 'RETURN', icon: PenLine, tint: 'bg-warning-soft text-warning-soft-foreground', verb: 'returned' },
-  { prefix: 'LOGIN', icon: UserRound, tint: 'bg-muted text-muted-foreground', verb: 'signed in' },
+  { prefix: 'LOGIN', icon: UserRound, tint: 'bg-primary/10 text-primary', verb: 'signed in' },
   { prefix: 'LOGOUT', icon: UserRound, tint: 'bg-muted text-muted-foreground', verb: 'signed out' },
 ];
 
@@ -128,46 +128,36 @@ export function ActivityFeed({
     .slice(0, limit);
 
   return (
-    <Card className="rounded-2xl">
+    <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-heading">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {visible.length === 0 ? (
           <EmptyState compact title="Nothing yet today" description={emptyDescription} />
         ) : (
-          <ol className="relative space-y-0">
-            {visible.map((entry, index) => {
+          <ol className="divide-y divide-border">
+            {visible.map((entry) => {
               const { Icon, tint, text } = describe(entry);
-              const isLast = index === visible.length - 1;
               return (
-                <li key={entry.id} className="relative flex gap-3 pb-4 last:pb-0">
-                  {/* The connector is drawn per-item rather than as one
-                      absolutely-positioned rail so it stops cleanly at the
-                      last row regardless of that row's height. */}
-                  {!isLast && (
-                    <span
-                      className="absolute top-8 left-[15px] h-[calc(100%-1.5rem)] w-px bg-border"
-                      aria-hidden="true"
-                    />
-                  )}
+                <li key={entry.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <span
                     className={cn(
-                      'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full ring-4 ring-card',
+                      'flex size-10 shrink-0 items-center justify-center rounded-full',
                       tint,
                     )}
                   >
-                    <Icon className="size-3.5" aria-hidden="true" />
+                    <Icon className="size-4" aria-hidden="true" />
                   </span>
-                  <div className="min-w-0 flex-1 pt-1">
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{actorLabel(entry)}</span>{' '}
-                      <span className="text-muted-foreground">{text}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-heading">
+                      {actorLabel(entry)}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatRelativeTime(entry.createdAt)}
-                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{text}</p>
                   </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatRelativeTime(entry.createdAt)}
+                  </span>
                 </li>
               );
             })}

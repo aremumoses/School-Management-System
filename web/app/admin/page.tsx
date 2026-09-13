@@ -18,7 +18,7 @@ import { QuickActions } from '@/components/dashboard/quick-actions';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { AtRiskList } from '@/components/students/at-risk-list';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiFetch } from '@/lib/api';
 import { getAtRiskStudents } from '@/lib/actions/students';
 import type {
@@ -37,13 +37,13 @@ import {
 } from './dashboard-charts';
 
 /**
- * Admin command centre — new-design §4-§7.
+ * Admin command centre — new-design §4-§7, laid out on Akademi's dashboard.
  *
  * Reading order is deliberate and matches how a head teacher actually opens
  * this screen: where am I in the year (greeting + session/term), what needs
  * my attention right now (KPI row, exceptions first), what is the shape of
- * the term (charts), what just happened (activity), what can I start
- * (quick actions).
+ * the term (charts), then the people and tasks — at-risk students and quick
+ * actions in the main column, recent activity in Akademi's right-hand rail.
  *
  * Every panel fetches independently and degrades to its own empty state.
  * That matters more here than anywhere else in the app: this is the first
@@ -130,6 +130,8 @@ export default async function AdminHomePage() {
   const attendanceSpark =
     attendancePoints.length > 1 ? attendancePoints.map((point) => point.value) : undefined;
 
+  const flaggedCount = atRiskStudents?.length ?? 0;
+
   return (
     <div className="space-y-6">
       <GreetingHeader
@@ -152,13 +154,13 @@ export default async function AdminHomePage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-4">
         <StatCard
           label="Active students"
           value={summary?.totalActiveStudents ?? '—'}
           description="Enrolled this session"
           icon={GraduationCap}
-          variant="violet"
+          variant="brand"
           href="/admin/students"
         />
         <StatCard
@@ -166,7 +168,7 @@ export default async function AdminHomePage() {
           value={summary?.totalActiveStaff ?? '—'}
           description="Teaching and non-teaching"
           icon={Users}
-          variant="blue"
+          variant="coral"
           href="/admin/staff"
         />
         <StatCard
@@ -207,7 +209,7 @@ export default async function AdminHomePage() {
           value={summary?.upcomingEventsCount ?? '—'}
           description="Starting in the next 7 days"
           icon={CalendarDays}
-          variant="orange"
+          variant="amber"
           href="/admin/calendar"
         />
         <StatCard
@@ -219,31 +221,41 @@ export default async function AdminHomePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         <AttendanceTrendPanel points={attendancePoints} />
         <PerformanceTrendPanel points={performancePoints} />
         <FeeCollectionPanel rows={collectionRows} />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.15fr_1fr]">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle>At-risk students</CardTitle>
-            <CardAction>
-              <Button variant="ghost" size="sm" render={<Link href="/admin/students" />}>
-                View all
+      <div className="grid grid-cols-1 items-start gap-4 lg:gap-6 xl:grid-cols-3">
+        <div className="space-y-4 lg:space-y-6 xl:col-span-2">
+          <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-heading">At-risk students</CardTitle>
+              <CardDescription>
+                {flaggedCount === 1
+                  ? '1 student flagged on attendance or CA scores'
+                  : `${flaggedCount} students flagged on attendance or CA scores`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <AtRiskList students={atRiskStudents ?? []} />
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full rounded-full bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary dark:text-foreground dark:hover:text-foreground"
+                render={<Link href="/admin/students" />}
+              >
+                View all students
               </Button>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <AtRiskList students={atRiskStudents ?? []} />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <QuickActions actions={QUICK_ACTIONS} />
+        </div>
 
         <ActivityFeed entries={activity ?? []} />
       </div>
-
-      <QuickActions actions={QUICK_ACTIONS} />
     </div>
   );
 }

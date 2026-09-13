@@ -4,14 +4,16 @@ import { LoginForm } from './login-form';
 
 function LoginFormSkeleton() {
   return (
-    <main className="flex min-h-screen flex-1 items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-4 rounded-lg border border-border bg-card p-6 shadow-sm">
-        <Skeleton className="mx-auto size-12 rounded-lg" />
-        <Skeleton className="mx-auto h-7 w-40" />
-        <Skeleton className="mx-auto h-4 w-48" />
-        <Skeleton className="mt-4 h-9 w-full" />
-        <Skeleton className="h-9 w-full" />
-        <Skeleton className="h-9 w-full" />
+    <main className="flex min-h-screen flex-1 flex-col bg-card lg:flex-row">
+      <div className="h-52 w-full shrink-0 bg-brand lg:h-auto lg:max-w-[22.5rem] xl:max-w-[35rem]" />
+      <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8 lg:pr-12 lg:pl-[10.75rem]">
+        <div className="w-full max-w-[26rem] space-y-5">
+          <Skeleton className="mx-auto h-8 w-32" />
+          <Skeleton className="mx-auto h-4 w-56" />
+          <Skeleton className="mt-8 h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
       </div>
     </main>
   );

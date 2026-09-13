@@ -63,7 +63,7 @@ export default async function AuditLogPage({
                 id="entityType"
                 name="entityType"
                 defaultValue={params.entityType ?? ''}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">All</option>
                 {ENTITY_TYPES.map((t) => (
@@ -82,7 +82,7 @@ export default async function AuditLogPage({
                 name="actorId"
                 defaultValue={params.actorId ?? ''}
                 placeholder="uuid…"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div className="flex-1 min-w-36 space-y-1">
@@ -94,7 +94,7 @@ export default async function AuditLogPage({
                 name="from"
                 type="date"
                 defaultValue={params.from ?? ''}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div className="flex-1 min-w-36 space-y-1">
@@ -106,7 +106,7 @@ export default async function AuditLogPage({
                 name="to"
                 type="date"
                 defaultValue={params.to ?? ''}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div className="flex items-end">

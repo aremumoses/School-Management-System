@@ -127,7 +127,7 @@ export default async function BursarHomePage() {
           value={formatNaira(expected)}
           description={currentTerm?.name ?? 'No current term'}
           icon={FileText}
-          variant="violet"
+          variant="brand"
           href="/bursar/invoices"
         />
         <StatCard
@@ -159,7 +159,7 @@ export default async function BursarHomePage() {
           value={formatNaira(outstanding?.totalOutstanding ?? 0)}
           description="Across every term, not just this one"
           icon={Landmark}
-          variant="orange"
+          variant="amber"
           href="/bursar/reports"
         />
         <StatCard
@@ -167,7 +167,7 @@ export default async function BursarHomePage() {
           value={formatNaira((expenses as ExpensesSummaryDto | null)?.totalExpenses ?? 0)}
           description="Recorded outgoings"
           icon={Banknote}
-          variant="blue"
+          variant="coral"
           href="/bursar/expenses"
         />
         <StatCard

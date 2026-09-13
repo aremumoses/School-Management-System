@@ -56,7 +56,7 @@ export function MobileDashboardShell({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-[16.5rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex print:hidden">
+      <aside className="hidden w-[17.5rem] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex print:hidden">
         <SidebarBrand label={label} collapsed={false} />
         <div className="flex-1 overflow-y-auto">
           <AppSidebarNav navItems={navItems} activeHref={activeItem?.href} />
@@ -66,7 +66,7 @@ export function MobileDashboardShell({
       {/* min-w-0 overrides the flex default of min-width:auto — see the
           identical note in staff-dashboard-shell.tsx. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card/85 px-4 backdrop-blur-md print:hidden">
+        <header className="sticky top-0 z-30 flex h-[4.5rem] shrink-0 items-center gap-3 bg-background/85 px-4 backdrop-blur-md md:px-6 lg:px-8 print:hidden">
           <Breadcrumbs
             items={
               activeItem && activeItem.href !== navItems[0]?.href
@@ -75,10 +75,10 @@ export function MobileDashboardShell({
             }
             className="hidden flex-1 md:block"
           />
-          <span className="flex-1 truncate text-base font-semibold md:hidden">
+          <span className="flex-1 truncate text-lg font-semibold text-heading md:hidden">
             {activeItem?.label ?? label}
           </span>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden md:block">
               <GlobalSearchTrigger navItems={navItems} />
             </div>
@@ -109,15 +109,17 @@ export function MobileDashboardShell({
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors duration-[--duration-fast]',
-                  active ? 'text-primary' : 'text-muted-foreground',
+                  active ? 'text-foreground' : 'text-muted-foreground',
                 )}
               >
                 <span
                   className={cn(
                     'flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-[--duration-fast]',
                     // A filled pill behind the icon, so the active tab is not
-                    // signalled by colour alone (§14 / new-design §36).
-                    active && 'bg-sidebar-primary',
+                    // signalled by colour alone (§14 / new-design §36). The
+                    // label stays foreground: small primary text on a dark
+                    // card misses AA.
+                    active && 'bg-primary/10 text-primary',
                   )}
                 >
                   <Icon className="size-[18px]" aria-hidden="true" />
@@ -137,21 +139,21 @@ export function MobileDashboardShell({
               aria-expanded={moreOpen}
               className={cn(
                 'flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors duration-[--duration-fast]',
-                moreIsActive ? 'text-primary' : 'text-muted-foreground',
+                moreIsActive ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
               <span
                 className={cn(
                   'flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-[--duration-fast]',
-                  moreIsActive && 'bg-sidebar-primary',
+                  moreIsActive && 'bg-primary/10 text-primary',
                 )}
               >
                 <MoreHorizontal className="size-[18px]" aria-hidden="true" />
               </span>
               <span>More</span>
             </button>
-            <SheetContent side="bottom" className="max-h-[78vh] overflow-y-auto">
-              <SheetTitle>More</SheetTitle>
+            <SheetContent side="bottom" className="max-h-[78vh] gap-3 overflow-y-auto rounded-t-2xl px-4 pt-5">
+              <SheetTitle className="text-lg font-semibold text-heading">More</SheetTitle>
               <div className="flex flex-col gap-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {moreGroups.map((group) => (
                   <div key={group.label} className="flex flex-col gap-0.5">
@@ -168,16 +170,14 @@ export function MobileDashboardShell({
                           onClick={() => setMoreOpen(false)}
                           aria-current={active ? 'page' : undefined}
                           className={cn(
-                            'flex min-h-11 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-[--duration-fast]',
-                            active
-                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                              : 'text-foreground hover:bg-accent',
+                            'flex min-h-11 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors duration-[--duration-fast]',
+                            active ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-accent',
                           )}
                         >
                           <Icon
                             className={cn(
                               'size-[18px] shrink-0',
-                              active ? 'text-sidebar-primary-foreground' : 'text-muted-foreground',
+                              active ? 'text-primary' : 'text-muted-foreground',
                             )}
                             aria-hidden="true"
                           />

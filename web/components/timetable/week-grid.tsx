@@ -30,7 +30,8 @@ function entryFor(
  * /student/timetable. Design-system §9: ≥md renders the classic
  * period-rows × day-columns grid; below md it collapses to a day-by-day
  * list (same grid-vs-list pattern as Stage 9's Calendar) instead of
- * cramming five columns into 375px.
+ * cramming five columns into 375px. Drawn as Akademi's table card, with each
+ * scheduled lesson a brand-edged block.
  */
 export function WeekGrid({
   periods,
@@ -44,12 +45,15 @@ export function WeekGrid({
 }) {
   if (periods.length === 0 || entries.length === 0) {
     return (
-      <Empty className="border border-dashed border-border">
+      <Empty className="rounded-xl bg-card py-12 dark:ring-1 dark:ring-foreground/10">
         <EmptyHeader>
-          <EmptyMedia variant="icon">
+          <EmptyMedia
+            variant="icon"
+            className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+          >
             <CalendarOff />
           </EmptyMedia>
-          <EmptyTitle>No timetable yet</EmptyTitle>
+          <EmptyTitle className="text-base font-semibold text-heading">No timetable yet</EmptyTitle>
           <EmptyDescription>
             {periods.length === 0
               ? 'The school hasn’t configured its periods yet.'
@@ -63,53 +67,66 @@ export function WeekGrid({
   return (
     <>
       {/* ≥md: week grid */}
-      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">Period</th>
-              {SCHOOL_DAYS.map((day) => (
-                <th key={day} className="px-3 py-2 font-medium">
-                  {DAY_LABELS[day]}
+      <div className="hidden overflow-hidden rounded-xl bg-card md:block dark:ring-1 dark:ring-foreground/10">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[48rem] table-fixed text-sm">
+            <thead>
+              <tr className="border-b border-border bg-primary/5">
+                <th
+                  scope="col"
+                  className="w-36 py-3.5 pr-3 pl-6 text-left font-semibold text-primary dark:text-heading"
+                >
+                  Period
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {periods.map((period) => (
-              <tr key={period.id}>
-                <td className="whitespace-nowrap px-3 py-2 align-top">
-                  <p className="font-medium text-foreground">{period.name}</p>
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    {period.startTime}–{period.endTime}
-                  </p>
-                </td>
-                {SCHOOL_DAYS.map((day) => {
-                  const entry = entryFor(entries, day, period.id);
-                  return (
-                    <td key={day} className="px-3 py-2 align-top">
-                      {entry ? (
-                        <div className="rounded-md bg-primary/10 px-2 py-1.5">
-                          <p className="text-xs font-medium text-foreground">
-                            {entry.subjectName}
-                          </p>
-                          {showArm && (
-                            <p className="text-xs text-muted-foreground">{entry.armLabel}</p>
-                          )}
-                          {entry.room && (
-                            <p className="text-xs text-muted-foreground">{entry.room}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/50">—</span>
-                      )}
-                    </td>
-                  );
-                })}
+                {SCHOOL_DAYS.map((day) => (
+                  <th
+                    key={day}
+                    scope="col"
+                    className="py-3.5 pr-2 pl-5 text-left font-semibold text-primary dark:text-heading"
+                  >
+                    {DAY_LABELS[day]}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {periods.map((period) => (
+                <tr key={period.id}>
+                  <th scope="row" className="py-3 pr-3 pl-6 text-left align-top font-normal">
+                    <span className="block font-semibold text-heading">{period.name}</span>
+                    <span className="block text-xs tabular-nums text-muted-foreground">
+                      {period.startTime} – {period.endTime}
+                    </span>
+                  </th>
+                  {SCHOOL_DAYS.map((day) => {
+                    const entry = entryFor(entries, day, period.id);
+                    return (
+                      <td key={day} className="px-1.5 py-2 align-top last:pr-5">
+                        {entry ? (
+                          <div className="min-h-14 rounded-lg border-l-4 border-primary bg-primary/10 px-3 py-2 dark:bg-primary/20">
+                            <p className="line-clamp-2 text-[13px] leading-snug font-semibold text-heading">
+                              {entry.subjectName}
+                            </p>
+                            {showArm && (
+                              <p className="text-xs text-muted-foreground">{entry.armLabel}</p>
+                            )}
+                            {entry.room && (
+                              <p className="text-xs text-muted-foreground">{entry.room}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="flex min-h-14 items-center px-3 text-muted-foreground/60">
+                            —
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* <md: day-by-day list */}
@@ -119,34 +136,40 @@ export function WeekGrid({
             .map((period) => ({ period, entry: entryFor(entries, day, period.id) }))
             .filter((slot) => slot.entry);
           return (
-            <div key={day} className="overflow-hidden rounded-lg border border-border">
-              <p className="bg-muted/50 px-3 py-2 text-xs font-semibold text-foreground">
+            <div
+              key={day}
+              className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10"
+            >
+              <p className="border-b border-border bg-primary/5 px-4 py-3 text-sm font-semibold text-primary dark:text-heading">
                 {DAY_LABELS[day]}
               </p>
               {dayEntries.length === 0 ? (
-                <p className="px-3 py-3 text-xs text-muted-foreground">No classes.</p>
+                <p className="px-4 py-4 text-sm text-muted-foreground">No classes.</p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {dayEntries.map(({ period, entry }) => (
-                    <li key={period.id} className="flex items-center gap-3 px-3 py-2.5">
-                      <div className="w-20 shrink-0">
-                        <p className="text-xs font-medium text-foreground">{period.name}</p>
-                        <p className="text-[11px] tabular-nums text-muted-foreground">
-                          {period.startTime}–{period.endTime}
-                        </p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {entry!.subjectName}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[showArm ? entry!.armLabel : null, entry!.room]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
+                  {dayEntries.map(({ period, entry }) => {
+                    const details = [showArm ? entry!.armLabel : null, entry!.room]
+                      .filter(Boolean)
+                      .join(' · ');
+                    return (
+                      <li key={period.id} className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-20 shrink-0">
+                          <p className="text-xs font-semibold text-heading">{period.name}</p>
+                          <p className="text-[11px] tabular-nums text-muted-foreground">
+                            {period.startTime}–{period.endTime}
+                          </p>
+                        </div>
+                        <div className="min-w-0 border-l-4 border-primary pl-3">
+                          <p className="truncate text-sm font-semibold text-heading">
+                            {entry!.subjectName}
+                          </p>
+                          {details && (
+                            <p className="truncate text-xs text-muted-foreground">{details}</p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

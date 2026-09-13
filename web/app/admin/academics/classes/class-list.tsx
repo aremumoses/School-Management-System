@@ -1,11 +1,10 @@
 'use client';
 
-import { ChevronDown, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, Pencil, Plus, School } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { addArm, deleteArm, deleteClass, updateArm, updateClass } from '@/lib/actions/classes';
 import type { ClassDto } from '@/lib/types/academic';
 import { cn } from '@/lib/utils';
@@ -16,16 +15,19 @@ export function ClassList({ classes }: { classes: ClassDto[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(classes[0]?.id ?? null);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {classes.map((klass) => {
         const isExpanded = expandedId === klass.id;
+        const panelId = `class-${klass.id}-arms`;
 
         return (
-          <Card key={klass.id}>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
+          <Card key={klass.id} className="gap-0 overflow-hidden rounded-xl py-0 ring-0 dark:ring-1">
+            <div className="flex items-center gap-2 px-4 py-3 sm:px-6">
               <div
                 role="button"
                 tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-controls={isExpanded ? panelId : undefined}
                 onClick={() => setExpandedId(isExpanded ? null : klass.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -33,19 +35,24 @@ export function ClassList({ classes }: { classes: ClassDto[] }) {
                     setExpandedId(isExpanded ? null : klass.id);
                   }
                 }}
-                className="flex flex-1 cursor-pointer items-center gap-3"
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-lg py-2 transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:-ml-2 sm:px-2"
               >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <School className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-semibold text-heading">{klass.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Level {klass.level} · {klass.arms.length} arm{klass.arms.length === 1 ? '' : 's'}
+                  </p>
+                </div>
                 <ChevronDown
                   className={cn(
-                    'size-5 text-muted-foreground transition-transform',
+                    'size-5 shrink-0 text-muted-foreground transition-transform',
                     isExpanded && 'rotate-180',
                   )}
                   aria-hidden="true"
                 />
-                <CardTitle className="text-xl">{klass.name}</CardTitle>
-                <Badge variant="outline">
-                  {klass.arms.length} arm{klass.arms.length === 1 ? '' : 's'}
-                </Badge>
               </div>
               <div className="flex items-center gap-1">
                 <ClassFormDialog
@@ -65,26 +72,30 @@ export function ClassList({ classes }: { classes: ClassDto[] }) {
                   onConfirm={() => deleteClass(klass.id)}
                 />
               </div>
-            </CardHeader>
+            </div>
+
             {isExpanded && (
-              <CardContent className="space-y-3">
+              <div id={panelId} className="space-y-4 border-t border-border px-4 py-5 sm:px-6">
                 {klass.arms.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                     No arms yet for {klass.name}.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
+                  <ul className="flex flex-wrap gap-2">
                     {klass.arms.map((arm) => (
-                      <div
+                      <li
                         key={arm.id}
-                        className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 py-1 pl-3 pr-1"
+                        className="flex items-center gap-0.5 rounded-full bg-primary/10 py-0.5 pr-1 pl-4"
                       >
-                        <span className="text-sm font-medium text-foreground">{arm.name}</span>
+                        <span className="text-sm font-semibold text-primary dark:text-foreground">
+                          {arm.name}
+                        </span>
                         <ArmFormDialog
                           trigger={
                             <Button
                               variant="ghost"
                               size="icon-sm"
+                              className="rounded-full hover:bg-primary/15"
                               aria-label={`Edit ${arm.name}`}
                             >
                               <Pencil className="size-3.5" />
@@ -100,13 +111,13 @@ export function ClassList({ classes }: { classes: ClassDto[] }) {
                           description="This fails if students are still enrolled in this arm."
                           onConfirm={() => deleteArm(arm.id)}
                         />
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
                 <ArmFormDialog
                   trigger={
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline">
                       <Plus className="size-4" />
                       Add Arm
                     </Button>
@@ -115,7 +126,7 @@ export function ClassList({ classes }: { classes: ClassDto[] }) {
                   description="e.g. Gold, Silver, Science A."
                   onSubmit={(values) => addArm(klass.id, values)}
                 />
-              </CardContent>
+              </div>
             )}
           </Card>
         );

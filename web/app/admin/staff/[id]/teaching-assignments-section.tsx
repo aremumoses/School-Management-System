@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Clock3, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, BookOpen, Clock3, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -106,24 +106,31 @@ export function TeachingAssignmentsSection({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {assignments.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           No teaching assignments yet.
         </p>
       ) : (
-        <div className="space-y-2">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
           {assignments.map((assignment) => (
-            <div
+            <li
               key={assignment.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
+              className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
             >
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-medium text-foreground">
-                  {assignment.classSubject?.class.name} — {assignment.classSubject?.subject.name}
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <BookOpen className="size-5" aria-hidden="true" />
                 </span>
-                <Badge variant="outline">{assignment.term?.name} Term</Badge>
-                {assignment.term?.isCurrent && <Badge variant="success">Current</Badge>}
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate text-sm font-semibold text-heading">
+                    {assignment.classSubject?.class.name} — {assignment.classSubject?.subject.name}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="info">{assignment.term?.name} Term</Badge>
+                    {assignment.term?.isCurrent && <Badge variant="success">Current</Badge>}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <DeadlineEditor staffId={staffId} assignment={assignment} />
@@ -132,9 +139,9 @@ export function TeachingAssignmentsSection({
                   onConfirm={() => removeTeachingAssignment(staffId, assignment.id)}
                 />
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {classSubjectOptions.length === 0 || termOptions.length === 0 ? (

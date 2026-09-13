@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Check, Copy, KeyRound, Plus } from 'lucide-react';
+import { AlertCircle, Check, Copy, KeyRound, Mail, Phone, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -374,14 +374,27 @@ export function GuardiansTab({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {student.guardians.map((link) => (
-            <Card key={link.id}>
-              <CardContent className="space-y-3">
+            <Card
+              key={link.id}
+              className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1"
+            >
+              <CardContent className="space-y-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {link.guardian.firstName} {link.guardian.lastName}
-                    </p>
-                    <Badge variant="outline">{link.relationship}</Badge>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary dark:text-heading"
+                    >
+                      {`${link.guardian.firstName[0] ?? ''}${link.guardian.lastName[0] ?? ''}`.toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-heading">
+                        {link.guardian.firstName} {link.guardian.lastName}
+                      </p>
+                      <Badge variant="info" className="mt-1">
+                        {link.relationship}
+                      </Badge>
+                    </div>
                   </div>
                   <ConfirmDeleteButton
                     itemLabel={`${link.guardian.firstName} ${link.guardian.lastName}`}
@@ -389,9 +402,17 @@ export function GuardiansTab({
                     onConfirm={() => unlinkGuardian(student.id, link.guardianId)}
                   />
                 </div>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>{link.guardian.email}</p>
-                  {link.guardian.phone && <p>{link.guardian.phone}</p>}
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p className="flex min-w-0 items-center gap-2">
+                    <Mail className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                    <span className="truncate">{link.guardian.email}</span>
+                  </p>
+                  {link.guardian.phone && (
+                    <p className="flex items-center gap-2">
+                      <Phone className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      {link.guardian.phone}
+                    </p>
+                  )}
                 </div>
                 <ResetPasswordButton
                   guardianId={link.guardianId}

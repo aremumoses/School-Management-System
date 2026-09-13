@@ -122,7 +122,7 @@ export default async function TeacherHomePage() {
           value={classCount || '—'}
           description={`${subjectCount || 0} subject${subjectCount === 1 ? '' : 's'} this term`}
           icon={Users}
-          variant="violet"
+          variant="brand"
           href="/teacher/gradebook"
         />
         <StatCard
@@ -130,7 +130,7 @@ export default async function TeacherHomePage() {
           value={todayLessons.length}
           description={todayLessons[0] ? `First at ${todayLessons[0].period.startTime}` : 'None scheduled'}
           icon={Table2}
-          variant="blue"
+          variant="coral"
           href="/teacher/timetable"
         />
         <StatCard
@@ -140,7 +140,7 @@ export default async function TeacherHomePage() {
             awaitingMarking.length > 0 ? `${awaitingMarking.length} closed, unmarked` : 'All caught up'
           }
           icon={ClipboardList}
-          variant={awaitingMarking.length > 0 ? 'warning' : 'orange'}
+          variant={awaitingMarking.length > 0 ? 'warning' : 'amber'}
           href="/teacher/assignments"
         />
         <StatCard

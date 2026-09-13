@@ -32,9 +32,9 @@ export function GreetingHeader({
   const context = [schoolName, session, term].filter(Boolean) as string[];
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0 space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0 space-y-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight text-heading sm:text-[1.75rem]">
           {greeting(today)}, {firstName}{' '}
           <span aria-hidden="true" className="inline-block">
             👋
@@ -44,12 +44,14 @@ export function GreetingHeader({
           {context.map((entry, index) => (
             <span key={entry} className="flex items-center gap-2">
               {index > 0 && (
-                <span aria-hidden="true" className="size-1 rounded-full bg-border" />
+                <span aria-hidden="true" className="size-1 rounded-full bg-muted-foreground/40" />
               )}
-              <span className={cn(index === 0 && 'font-medium text-foreground')}>{entry}</span>
+              <span className={cn(index === 0 && 'font-medium text-heading')}>{entry}</span>
             </span>
           ))}
-          {context.length > 0 && <span aria-hidden="true" className="size-1 rounded-full bg-border" />}
+          {context.length > 0 && (
+            <span aria-hidden="true" className="size-1 rounded-full bg-muted-foreground/40" />
+          )}
           <time dateTime={today.toISOString().slice(0, 10)}>{formatLongDate(today)}</time>
         </div>
       </div>

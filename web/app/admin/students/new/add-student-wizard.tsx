@@ -7,9 +7,10 @@ import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel as FieldLabel } from '@/components/dashboard/form-field-label';
 import { Stepper } from '@/components/dashboard/stepper';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,6 +27,11 @@ import {
 import type { AcademicSessionDto, ClassDto } from '@/lib/types/academic';
 
 const STEPS = ['Bio-data', 'Guardian(s)', 'Class Placement'];
+const STEP_TITLES = ['Student details', 'Guardian details', 'Class placement'];
+
+// Akademi's form controls are taller than the app default.
+const inputClass = 'h-11';
+const selectTriggerClass = 'w-full data-[size=default]:h-11';
 
 const guardianSchema = z.object({
   firstName: z.string().min(1, 'Required').max(100),
@@ -132,13 +138,13 @@ export function AddStudentWizard({
   if (result) {
     const hasIssues = result.guardianErrors.length > 0 || result.enrollmentError;
     return (
-      <Card className="mx-auto max-w-lg">
+      <Card className="mx-auto max-w-lg rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
         <CardContent className="space-y-4 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-success-soft">
-            <Check className="size-6 text-success-soft-foreground" aria-hidden="true" />
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success-soft">
+            <Check className="size-7 text-success-soft-foreground" aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Student created</h2>
+            <h2 className="text-xl font-semibold text-heading">Student created</h2>
             <p className="text-sm text-muted-foreground">
               Admission No. <span className="font-mono">{result.admissionNumber}</span>
             </p>
@@ -219,31 +225,37 @@ export function AddStudentWizard({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8">
       <Stepper steps={STEPS} currentStep={step} />
 
-      <Card>
+      <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
+        <CardHeader className="border-b">
+          <CardTitle className="text-lg font-semibold text-heading">{STEP_TITLES[step - 1]}</CardTitle>
+          <CardDescription>
+            Step {step} of {STEPS.length}
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             {step === 1 && (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" aria-invalid={Boolean(errors.firstName)} {...register('firstName')} />
+                  <FieldLabel htmlFor="firstName" required>First Name</FieldLabel>
+                  <Input id="firstName" className={inputClass} aria-invalid={Boolean(errors.firstName)} {...register('firstName')} />
                   {errors.firstName && <FieldError message={errors.firstName.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" aria-invalid={Boolean(errors.lastName)} {...register('lastName')} />
+                  <FieldLabel htmlFor="lastName" required>Last Name</FieldLabel>
+                  <Input id="lastName" className={inputClass} aria-invalid={Boolean(errors.lastName)} {...register('lastName')} />
                   {errors.lastName && <FieldError message={errors.lastName.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input id="dateOfBirth" type="date" aria-invalid={Boolean(errors.dateOfBirth)} {...register('dateOfBirth')} />
+                  <FieldLabel htmlFor="dateOfBirth" required>Date of Birth</FieldLabel>
+                  <Input id="dateOfBirth" type="date" className={inputClass} aria-invalid={Boolean(errors.dateOfBirth)} {...register('dateOfBirth')} />
                   {errors.dateOfBirth && <FieldError message={errors.dateOfBirth.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <FieldLabel required>Gender</FieldLabel>
                   <Select
                     value={gender ?? ''}
                     onValueChange={(v) => v && setValue('gender', v as 'MALE' | 'FEMALE')}
@@ -252,7 +264,7 @@ export function AddStudentWizard({
                       { value: 'FEMALE', label: 'Female' },
                     ]}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className={selectTriggerClass}>
                       <SelectValue placeholder="Choose…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -263,32 +275,32 @@ export function AddStudentWizard({
                   {errors.gender && <FieldError message={errors.gender.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stateOfOrigin">State of Origin</Label>
-                  <Input id="stateOfOrigin" {...register('stateOfOrigin')} />
+                  <FieldLabel htmlFor="stateOfOrigin">State of Origin</FieldLabel>
+                  <Input id="stateOfOrigin" className={inputClass} {...register('stateOfOrigin')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lga">LGA</Label>
-                  <Input id="lga" {...register('lga')} />
+                  <FieldLabel htmlFor="lga">LGA</FieldLabel>
+                  <Input id="lga" className={inputClass} {...register('lga')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="religion">Religion</Label>
-                  <Input id="religion" {...register('religion')} />
+                  <FieldLabel htmlFor="religion">Religion</FieldLabel>
+                  <Input id="religion" className={inputClass} {...register('religion')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bloodGroup">Blood Group</Label>
-                  <Input id="bloodGroup" {...register('bloodGroup')} />
+                  <FieldLabel htmlFor="bloodGroup">Blood Group</FieldLabel>
+                  <Input id="bloodGroup" className={inputClass} {...register('bloodGroup')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="genotype">Genotype</Label>
-                  <Input id="genotype" {...register('genotype')} />
+                  <FieldLabel htmlFor="genotype">Genotype</FieldLabel>
+                  <Input id="genotype" className={inputClass} {...register('genotype')} />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" {...register('address')} />
+                  <FieldLabel htmlFor="address">Address</FieldLabel>
+                  <Input id="address" className={inputClass} {...register('address')} />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="email">Email (optional — for student login)</Label>
-                  <Input id="email" type="email" aria-invalid={Boolean(errors.email)} {...register('email')} />
+                  <FieldLabel htmlFor="email">Email (optional — for student login)</FieldLabel>
+                  <Input id="email" type="email" className={inputClass} aria-invalid={Boolean(errors.email)} {...register('email')} />
                   {errors.email && <FieldError message={errors.email.message} />}
                 </div>
               </div>
@@ -297,9 +309,9 @@ export function AddStudentWizard({
             {step === 2 && (
               <div className="space-y-4">
                 {guardianFields.fields.map((field, index) => (
-                  <div key={field.id} className="space-y-3 rounded-lg border border-border p-4">
+                  <div key={field.id} className="space-y-4 rounded-xl border border-border p-5">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-foreground">Guardian {index + 1}</p>
+                      <p className="text-sm font-semibold text-heading">Guardian {index + 1}</p>
                       {guardianFields.fields.length > 1 && (
                         <Button
                           type="button"
@@ -312,51 +324,56 @@ export function AddStudentWizard({
                         </Button>
                       )}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`guardians.${index}.firstName`}>First Name</Label>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <FieldLabel htmlFor={`guardians.${index}.firstName`} required>First Name</FieldLabel>
                         <Input
                           id={`guardians.${index}.firstName`}
+                          className={inputClass}
                           {...register(`guardians.${index}.firstName`)}
                         />
                         {errors.guardians?.[index]?.firstName && (
                           <FieldError message={errors.guardians[index]?.firstName?.message} />
                         )}
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`guardians.${index}.lastName`}>Last Name</Label>
+                      <div className="space-y-2">
+                        <FieldLabel htmlFor={`guardians.${index}.lastName`} required>Last Name</FieldLabel>
                         <Input
                           id={`guardians.${index}.lastName`}
+                          className={inputClass}
                           {...register(`guardians.${index}.lastName`)}
                         />
                         {errors.guardians?.[index]?.lastName && (
                           <FieldError message={errors.guardians[index]?.lastName?.message} />
                         )}
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`guardians.${index}.email`}>Email</Label>
+                      <div className="space-y-2">
+                        <FieldLabel htmlFor={`guardians.${index}.email`} required>Email</FieldLabel>
                         <Input
                           id={`guardians.${index}.email`}
                           type="email"
+                          className={inputClass}
                           {...register(`guardians.${index}.email`)}
                         />
                         {errors.guardians?.[index]?.email && (
                           <FieldError message={errors.guardians[index]?.email?.message} />
                         )}
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor={`guardians.${index}.phone`}>Phone (optional)</Label>
+                      <div className="space-y-2">
+                        <FieldLabel htmlFor={`guardians.${index}.phone`}>Phone (optional)</FieldLabel>
                         <Input
                           id={`guardians.${index}.phone`}
                           placeholder="+2348012345678"
+                          className={inputClass}
                           {...register(`guardians.${index}.phone`)}
                         />
                       </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor={`guardians.${index}.relationship`}>Relationship</Label>
+                      <div className="space-y-2 sm:col-span-2">
+                        <FieldLabel htmlFor={`guardians.${index}.relationship`} required>Relationship</FieldLabel>
                         <Input
                           id={`guardians.${index}.relationship`}
                           placeholder="Mother, Father, Uncle…"
+                          className={inputClass}
                           {...register(`guardians.${index}.relationship`)}
                         />
                         {errors.guardians?.[index]?.relationship && (
@@ -372,7 +389,6 @@ export function AddStudentWizard({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() =>
                     guardianFields.append({
                       firstName: '',
@@ -394,9 +410,9 @@ export function AddStudentWizard({
             )}
 
             {step === 3 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label>Class</Label>
+                  <FieldLabel required>Class</FieldLabel>
                   <Select
                     value={classId}
                     onValueChange={(v) => {
@@ -407,7 +423,7 @@ export function AddStudentWizard({
                     }}
                     items={classes.map((klass) => ({ value: klass.id, label: klass.name }))}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className={selectTriggerClass}>
                       <SelectValue placeholder="Choose a class…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -421,14 +437,14 @@ export function AddStudentWizard({
                   {errors.classId && <FieldError message={errors.classId.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label>Arm</Label>
+                  <FieldLabel required>Arm</FieldLabel>
                   <Select
                     value={armId}
                     disabled={!classId}
                     onValueChange={(v) => v && setValue('armId', v)}
                     items={armsForClass.map((arm) => ({ value: arm.id, label: arm.name }))}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className={selectTriggerClass}>
                       <SelectValue placeholder="Choose an arm…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,7 +458,7 @@ export function AddStudentWizard({
                   {errors.armId && <FieldError message={errors.armId.message} />}
                 </div>
                 <div className="space-y-2">
-                  <Label>Term</Label>
+                  <FieldLabel required>Term</FieldLabel>
                   <Select
                     value={termId}
                     onValueChange={(v) => v && setValue('termId', v)}
@@ -453,7 +469,7 @@ export function AddStudentWizard({
                       })),
                     )}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className={selectTriggerClass}>
                       <SelectValue placeholder="Choose a term…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -471,16 +487,16 @@ export function AddStudentWizard({
               </div>
             )}
 
-            <div className="mt-6 flex justify-between border-t border-border pt-4">
-              <Button type="button" variant="outline" disabled={step === 1} onClick={goBack}>
+            <div className="mt-8 flex justify-between border-t border-border pt-6">
+              <Button type="button" variant="outline" size="lg" disabled={step === 1} onClick={goBack}>
                 Back
               </Button>
               {step < STEPS.length ? (
-                <Button type="button" onClick={() => void goNext()}>
+                <Button type="button" size="lg" onClick={() => void goNext()}>
                   Continue
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" size="lg" disabled={isSubmitting}>
                   {isSubmitting ? 'Creating…' : 'Create Student'}
                 </Button>
               )}

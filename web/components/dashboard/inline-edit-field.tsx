@@ -79,15 +79,15 @@ export function InlineEditField({
   if (!isEditing) {
     return (
       <div className="space-y-1">
-        <Label className="text-sm text-muted-foreground">{label}</Label>
+        <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
         <button
           type="button"
           onClick={startEditing}
-          className="group flex w-full items-center justify-between gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-sm hover:border-border hover:bg-muted/40"
+          className="group flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:border-border hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <span className="text-foreground">{optionLabel ?? displayValue}</span>
+          <span className="font-medium text-heading">{optionLabel ?? displayValue}</span>
           <Pencil
-            className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100"
+            className="size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
             aria-hidden="true"
           />
         </button>
@@ -97,13 +97,13 @@ export function InlineEditField({
 
   return (
     <div className="space-y-1">
-      <Label htmlFor={fieldId} className="text-sm text-muted-foreground">
+      <Label htmlFor={fieldId} className="text-xs font-medium text-muted-foreground">
         {label}
       </Label>
       <div className="flex items-center gap-1.5">
         {type === 'select' && options ? (
           <Select value={draft} onValueChange={(v) => v && setDraft(v)} items={options}>
-            <SelectTrigger id={fieldId} className="w-full">
+            <SelectTrigger id={fieldId} className="w-full data-[size=default]:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -122,6 +122,7 @@ export function InlineEditField({
             value={draft}
             autoFocus
             disabled={isSaving}
+            className="h-10"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void save();

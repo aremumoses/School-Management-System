@@ -39,7 +39,7 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <div className="size-9 shrink-0" aria-hidden="true" />;
+    return <div className="size-10 shrink-0 rounded-md bg-card" aria-hidden="true" />;
   }
 
   const Icon = resolvedTheme === 'dark' ? Moon : Sun;
@@ -51,7 +51,7 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon-lg"
-            className="text-muted-foreground hover:text-foreground"
+            className="size-10 rounded-md bg-card text-muted-foreground hover:bg-card hover:text-primary"
             aria-label={`Change theme — currently ${theme ?? 'system'}`}
           />
         }

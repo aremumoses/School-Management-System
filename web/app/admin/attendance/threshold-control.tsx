@@ -29,7 +29,7 @@ export function ThresholdControl({ threshold }: { threshold: number }) {
       onValueChange={handleChange}
       items={THRESHOLD_OPTIONS.map((option) => ({ value: String(option), label: `Above ${option}%` }))}
     >
-      <SelectTrigger size="sm" aria-label="Absence rate threshold">
+      <SelectTrigger className="w-36 data-[size=default]:h-10" aria-label="Absence rate threshold">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

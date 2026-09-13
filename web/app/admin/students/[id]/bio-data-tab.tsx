@@ -15,7 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { softDeleteStudent, updateStudent, uploadStudentPhoto } from '@/lib/actions/students';
@@ -82,11 +89,13 @@ export function BioDataTab({ student }: { student: StudentDetailDto }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <span className="text-sm font-medium text-foreground">Status</span>
-        <div className="flex items-center gap-2">
+    <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
+      <CardHeader className="border-b">
+        <CardTitle className="text-lg font-semibold text-heading">Bio-data</CardTitle>
+        <CardDescription>Select any field to edit it.</CardDescription>
+        <CardAction className="flex items-center gap-2 self-center">
           <Label htmlFor="student-active-toggle" className="text-sm text-muted-foreground">
+            <span className="sr-only">Status: </span>
             {isActive ? 'Active' : 'Inactive'}
           </Label>
           <Switch
@@ -101,7 +110,7 @@ export function BioDataTab({ student }: { student: StudentDetailDto }) {
               }
             }}
           />
-        </div>
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center gap-4">
@@ -113,7 +122,7 @@ export function BioDataTab({ student }: { student: StudentDetailDto }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click();
             }}
-            className="relative flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-muted/40 text-muted-foreground hover:border-primary hover:text-primary"
+            className="relative flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border bg-muted/40 text-muted-foreground hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             {isUploadingPhoto ? (
               <Loader2 className="size-6 animate-spin" aria-hidden="true" />
@@ -135,14 +144,12 @@ export function BioDataTab({ student }: { student: StudentDetailDto }) {
             />
           </div>
           <div>
-            <p className="text-lg font-semibold text-foreground">
-              {student.firstName} {student.lastName}
-            </p>
-            <p className="font-mono text-sm text-muted-foreground">{student.admissionNumber}</p>
+            <p className="text-sm font-semibold text-heading">Profile photo</p>
+            <p className="text-sm text-muted-foreground">Select the photo to upload a new one.</p>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
           <InlineEditField
             label="First Name"
             value={student.firstName}

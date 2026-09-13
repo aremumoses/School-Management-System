@@ -8,8 +8,11 @@
 // (even to a you're-offline state)" plus push notifications, not a full
 // offline-everything strategy.
 
-const SHELL_CACHE = 'sms-shell-v1';
-const RUNTIME_CACHE = 'sms-runtime-v1';
+// Bump the version whenever a cached shell asset changes, so `activate`
+// purges the old copies. v2 dropped stale /api/auth responses; v3 ships the
+// blue icons and offline page.
+const SHELL_CACHE = 'sms-shell-v3';
+const RUNTIME_CACHE = 'sms-runtime-v3';
 const OFFLINE_URL = '/offline.html';
 
 const SHELL_ASSETS = [OFFLINE_URL, '/icon-192.png', '/icon-512.png'];
@@ -38,6 +41,14 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return; // never intercept mutations — those go through the Dexie queue, not the SW cache
 
+  // Cross-origin API calls and everything under /api (NextAuth's csrf and
+  // session endpoints, exports) are per-user and must always hit the
+  // network. A cached /api/auth/csrf token stops matching the csrf cookie,
+  // so every sign-in fails with MissingCSRF — which the login form can only
+  // report as "Email or password is incorrect."
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+
   // Page navigations: network-first, cache the result for next time, fall
   // back to the last-cached version of that exact page, and only as a
   // last resort show the generic offline page (so a teacher who already
@@ -61,7 +72,10 @@ self.addEventListener('fetch', (event) => {
 
   // Static assets (icons, manifest, _next static chunks): cache-first, since
   // these are content-hashed/rarely change and a cache hit avoids a round
-  // trip entirely, online or not.
+  // trip entirely, online or not. Anything else (e.g. RSC payload fetches)
+  // is dynamic and goes straight to the network.
+  if (!isStaticAsset(url.pathname)) return;
+
   event.respondWith(
     caches.match(request).then(
       (cached) =>
@@ -74,6 +88,13 @@ self.addEventListener('fetch', (event) => {
     ),
   );
 });
+
+function isStaticAsset(pathname) {
+  return (
+    pathname.startsWith('/_next/static/') ||
+    /\.(?:png|jpe?g|svg|ico|webp|webmanifest|woff2?)$/.test(pathname)
+  );
+}
 
 // --- Push notifications ---
 

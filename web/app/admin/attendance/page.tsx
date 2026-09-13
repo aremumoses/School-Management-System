@@ -1,10 +1,10 @@
-import { AlertTriangle, CalendarCheck, Download, Users } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, Download, Info, Users } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Empty,
   EmptyDescription,
@@ -12,6 +12,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   getAttendanceRegister,
   getChronicAbsenteeism,
@@ -25,6 +33,38 @@ import type { StudentDetailDto } from '@/lib/types/students';
 import { AttendanceByClassChart, type ClassAttendanceRate } from './attendance-by-class-chart';
 import { ClassRegisterFilters, type PeriodOption } from './class-register-filters';
 import { ThresholdControl } from './threshold-control';
+
+function initials(firstName: string, lastName: string): string {
+  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
+}
+
+/** A white section card with Akademi's title row. */
+function SectionCard({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+        <div className="min-w-0">
+          <h2 className="text-lg leading-snug font-semibold text-heading">{title}</h2>
+          {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const HEAD_CLASS = 'h-12 font-semibold text-primary dark:text-heading';
 
 export default async function AdminAttendancePage({
   searchParams,
@@ -138,7 +178,7 @@ export default async function AdminAttendancePage({
         title="Attendance"
         description="School-wide attendance rate, per-class daily registers, and chronic absenteeism flags."
         action={
-          <Button variant="outline" size="sm" render={<a href="/api/attendance/export" download />}>
+          <Button variant="outline" render={<a href="/api/attendance/export" download />}>
             <Download className="size-4" aria-hidden="true" />
             Export Excel
           </Button>
@@ -146,26 +186,27 @@ export default async function AdminAttendancePage({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {todaysRate === null ? (
-          <Card className="sm:col-span-2">
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
-              No daily attendance has been marked yet today.
-              <br />
-              <span className="text-xs">
-                (This counts only the whole-day register — check the Class Register below with a
-                Period selected if a Subject Teacher has marked attendance instead.)
-              </span>
-            </CardContent>
-          </Card>
-        ) : (
-          <StatCard
-            label="Today's Attendance Rate"
-            value={`${todaysRate}%`}
-            description={`${totalPresentOrLate} of ${totalMarked} marked present/late`}
-            icon={CalendarCheck}
-            variant={todaysRate >= 90 ? 'success' : todaysRate >= 75 ? 'warning' : 'error'}
-          />
-        )}
+        {/* Only the whole-day register feeds this rate; the Class Register
+            below explains how to find a Subject Teacher's per-period marks. */}
+        <StatCard
+          label="Today's Attendance Rate"
+          value={todaysRate === null ? '—' : `${todaysRate}%`}
+          description={
+            todaysRate === null
+              ? 'No daily attendance has been marked yet today'
+              : `${totalPresentOrLate} of ${totalMarked} marked present/late`
+          }
+          icon={CalendarCheck}
+          variant={
+            todaysRate === null
+              ? 'default'
+              : todaysRate >= 90
+                ? 'success'
+                : todaysRate >= 75
+                  ? 'warning'
+                  : 'error'
+          }
+        />
         <StatCard
           label="Students Flagged"
           value={flagged.length}
@@ -175,11 +216,11 @@ export default async function AdminAttendancePage({
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Class Register</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard
+        title="Class Register"
+        description="Shows the whole-day register. Choose a subject under Period to see a Subject Teacher's marks instead."
+      >
+        <div className="space-y-4 px-5 pt-4 pb-5 sm:px-6">
           <ClassRegisterFilters
             classes={classes}
             classId={registerClassId}
@@ -189,17 +230,20 @@ export default async function AdminAttendancePage({
             classSubjectId={registerPeriod}
           />
           {!registerArmId ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
               Add a class and arm first to look up its attendance register.
             </p>
           ) : (
             <>
               {markedPeriodNames.length > 0 && (
-                <div className="rounded-lg border border-info/30 bg-info-soft px-4 py-3 text-sm text-info-soft-foreground">
-                  No daily register taken for this date yet, but{' '}
-                  <strong>{markedPeriodNames.join(', ')}</strong> {markedPeriodNames.length === 1 ? 'has' : 'have'}{' '}
-                  been marked separately — switch the Period filter above to view{' '}
-                  {markedPeriodNames.length === 1 ? 'it' : 'them'}.
+                <div className="flex items-start gap-2.5 rounded-xl border border-info/30 bg-info-soft px-4 py-3 text-sm text-info-soft-foreground">
+                  <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <p>
+                    No daily register taken for this date yet, but{' '}
+                    <strong>{markedPeriodNames.join(', ')}</strong>{' '}
+                    {markedPeriodNames.length === 1 ? 'has' : 'have'} been marked separately — switch
+                    the Period filter above to view {markedPeriodNames.length === 1 ? 'it' : 'them'}.
+                  </p>
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-2">
@@ -211,120 +255,131 @@ export default async function AdminAttendancePage({
                   <Badge variant="outline">{registerCounts.notMarked} Not Marked</Badge>
                 )}
               </div>
-              {register.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
+              {register.length === 0 && (
+                <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
                   No students are actively enrolled in this arm.
                 </p>
-              ) : (
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Name</th>
-                        <th className="px-3 py-2 font-medium">Admission No.</th>
-                        <th className="px-3 py-2 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {register.map((entry) => (
-                        <tr key={entry.studentId}>
-                          <td className="px-3 py-2">
-                            <Link
-                              href={`/admin/students/${entry.studentId}?tab=attendance`}
-                              className="font-medium text-primary hover:underline"
-                            >
-                              {entry.firstName} {entry.lastName}
-                            </Link>
-                          </td>
-                          <td className="px-3 py-2 font-mono text-muted-foreground tabular-nums">
-                            {entry.admissionNumber}
-                          </td>
-                          <td className="px-3 py-2">
-                            {entry.status ? (
-                              <Badge variant={ATTENDANCE_STATUS_BADGE[entry.status]}>
-                                {ATTENDANCE_STATUS_LABELS[entry.status]}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">Not Marked</Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance Rate by Class (Today)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No attendance has been marked yet today.
-            </p>
-          ) : (
-            <AttendanceByClassChart data={chartData} />
-          )}
-        </CardContent>
-      </Card>
+        {registerArmId && register.length > 0 && (
+          <div className="border-t border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-primary/5 hover:bg-primary/5">
+                  <TableHead className={`${HEAD_CLASS} pl-5 sm:pl-6`}>Name</TableHead>
+                  <TableHead className={`${HEAD_CLASS} hidden sm:table-cell`}>Admission No.</TableHead>
+                  <TableHead className={`${HEAD_CLASS} pr-5 sm:pr-6`}>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {register.map((entry) => (
+                  <TableRow key={entry.studentId} className="hover:bg-primary/5">
+                    <TableCell className="py-3 pl-5 sm:pl-6">
+                      <div className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary dark:text-heading"
+                        >
+                          {initials(entry.firstName, entry.lastName)}
+                        </span>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/admin/students/${entry.studentId}?tab=attendance`}
+                            className="font-semibold text-heading hover:text-primary hover:underline dark:hover:text-foreground"
+                          >
+                            {entry.firstName} {entry.lastName}
+                          </Link>
+                          <p className="font-mono text-xs text-muted-foreground tabular-nums sm:hidden">
+                            {entry.admissionNumber}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden py-3 font-mono font-medium text-primary tabular-nums sm:table-cell dark:text-foreground">
+                      {entry.admissionNumber}
+                    </TableCell>
+                    <TableCell className="py-3 pr-5 sm:pr-6">
+                      {entry.status ? (
+                        <Badge variant={ATTENDANCE_STATUS_BADGE[entry.status]}>
+                          {ATTENDANCE_STATUS_LABELS[entry.status]}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Not Marked</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </SectionCard>
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>Chronic Absenteeism</CardTitle>
-          <ThresholdControl threshold={threshold} />
-        </CardHeader>
-        <CardContent>
+      <AttendanceByClassChart data={chartData} />
+
+      <SectionCard
+        title="Chronic Absenteeism"
+        description={`Students whose absence rate this term is above ${threshold}%.`}
+        action={<ThresholdControl threshold={threshold} />}
+      >
+        <div className="px-5 pt-4 pb-5 sm:px-6">
           {flaggedWithEnrollment.length === 0 ? (
-            <Empty>
+            <Empty className="border border-dashed border-border py-8">
               <EmptyHeader>
-                <EmptyMedia variant="icon">
+                <EmptyMedia
+                  variant="icon"
+                  className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+                >
                   <Users />
                 </EmptyMedia>
-                <EmptyTitle>No students flagged</EmptyTitle>
+                <EmptyTitle className="text-base font-semibold text-heading">
+                  No students flagged
+                </EmptyTitle>
                 <EmptyDescription>
                   No student&apos;s absence rate exceeds {threshold}% this term.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="space-y-2">
+            <ul className="divide-y divide-border">
               {flaggedWithEnrollment.map(({ entry, student }) => {
                 const enrollment = student.enrollments[0];
+                const fullName = `${student.firstName} ${student.lastName}`;
                 return (
-                  <div
-                    key={entry.studentId}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {student.firstName} {student.lastName}
-                      </p>
+                  <li key={entry.studentId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary dark:text-heading"
+                    >
+                      {initials(student.firstName, student.lastName)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-heading">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
                         {enrollment ? `${enrollment.class.name} ${enrollment.arm.name}` : 'Not enrolled'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-3">
                       <Badge variant="error">{entry.absenceRate}% absent</Badge>
-                      <Link
-                        href={`/admin/students/${student.id}?tab=attendance`}
-                        className="text-sm font-medium text-primary hover:underline"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        render={<Link href={`/admin/students/${student.id}?tab=attendance`} />}
+                        aria-label={`View ${fullName}'s attendance`}
                       >
                         View
-                      </Link>
+                      </Button>
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     </div>
   );
 }

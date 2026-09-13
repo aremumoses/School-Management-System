@@ -134,13 +134,15 @@ export function DocumentsTab({ student }: { student: StudentDetailDto }) {
           No documents uploaded yet.
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
           {documents.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between gap-3 p-3">
-              <div className="flex items-center gap-3">
-                <FileText className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{doc.type}</p>
+            <li key={doc.id} className="flex items-center justify-between gap-3 px-5 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <FileText className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-heading">{doc.type}</p>
                   <p className="text-xs text-muted-foreground">
                     Uploaded{' '}
                     {new Date(doc.uploadedAt).toLocaleDateString('en-GB', {

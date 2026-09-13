@@ -1,9 +1,10 @@
 'use client';
 
-import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -29,6 +29,7 @@ import {
   updateTimetableEntry,
 } from '@/lib/actions/timetable';
 import type { PeriodDto, TimetableEntryDto } from '@/lib/types/timetable';
+import { cn } from '@/lib/utils';
 
 interface SlotSelection {
   dayOfWeek: number;
@@ -129,25 +130,37 @@ export function TimetableBuilder({
 
   const cellButton = (day: number, period: PeriodDto) => {
     const entry = cellEntry(day, period.id);
+    const details = entry ? [entry.teacherName, entry.room].filter(Boolean).join(' · ') : '';
     return (
       <button
         type="button"
         onClick={() => openSlot({ dayOfWeek: day, period, entry })}
-        className={`w-full rounded-md px-2 py-1.5 text-left transition-colors ${
+        className={cn(
+          'flex min-h-14 w-full flex-col justify-center rounded-lg px-3 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
           entry
-            ? 'bg-primary/10 hover:bg-primary/20'
-            : 'border border-dashed border-border text-muted-foreground/60 hover:border-primary hover:text-primary'
-        }`}
+            ? 'border-l-4 border-primary bg-primary/10 hover:bg-primary/15 dark:bg-primary/20 dark:hover:bg-primary/25'
+            : 'items-center border border-dashed border-border text-muted-foreground hover:border-primary hover:bg-primary/5 hover:text-primary dark:hover:text-foreground',
+        )}
       >
+        {/* The grid's row and column headers give sighted users the slot;
+            a screen reader reaching a lone "Assign" needs it spelled out. */}
+        <span className="sr-only">
+          {DAY_LABELS[day]}, {period.name}:{' '}
+        </span>
         {entry ? (
           <>
-            <p className="text-xs font-medium text-foreground">{entry.subjectName}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {[entry.teacherName, entry.room].filter(Boolean).join(' · ') || ' '}
-            </p>
+            <span className="line-clamp-2 text-[13px] leading-snug font-semibold text-heading">
+              {entry.subjectName}
+            </span>
+            {details && (
+              <span className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{details}</span>
+            )}
           </>
         ) : (
-          <span className="text-xs">+ Assign</span>
+          <span className="flex items-center gap-1 text-xs font-medium">
+            <Plus className="size-3.5" aria-hidden="true" />
+            Assign
+          </span>
         )}
       </button>
     );
@@ -156,13 +169,22 @@ export function TimetableBuilder({
   return (
     <>
       {/* ≥md: grid */}
-      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">Period</th>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[48rem] table-fixed text-sm">
+          <thead>
+            <tr className="border-b border-border bg-primary/5">
+              <th
+                scope="col"
+                className="w-36 px-5 py-3.5 text-left font-semibold text-primary sm:pl-6 dark:text-heading"
+              >
+                Period
+              </th>
               {SCHOOL_DAYS.map((day) => (
-                <th key={day} className="px-3 py-2 font-medium">
+                <th
+                  key={day}
+                  scope="col"
+                  className="py-3.5 pr-2 pl-5 text-left font-semibold text-primary dark:text-heading"
+                >
                   {DAY_LABELS[day]}
                 </th>
               ))}
@@ -171,14 +193,14 @@ export function TimetableBuilder({
           <tbody className="divide-y divide-border">
             {periods.map((period) => (
               <tr key={period.id}>
-                <td className="whitespace-nowrap px-3 py-2 align-top">
-                  <p className="font-medium text-foreground">{period.name}</p>
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    {period.startTime}–{period.endTime}
-                  </p>
-                </td>
+                <th scope="row" className="px-5 py-3 text-left align-top font-normal sm:pl-6">
+                  <span className="block font-semibold text-heading">{period.name}</span>
+                  <span className="block text-xs tabular-nums text-muted-foreground">
+                    {period.startTime} – {period.endTime}
+                  </span>
+                </th>
                 {SCHOOL_DAYS.map((day) => (
-                  <td key={day} className="px-2 py-1.5 align-top">
+                  <td key={day} className="px-1.5 py-2 align-top last:pr-5">
                     {cellButton(day, period)}
                   </td>
                 ))}
@@ -189,16 +211,16 @@ export function TimetableBuilder({
       </div>
 
       {/* <md: day-by-day stacked (same cells, one day at a time) */}
-      <div className="space-y-4 md:hidden">
+      <div className="space-y-3 p-4 md:hidden">
         {SCHOOL_DAYS.map((day) => (
-          <div key={day} className="overflow-hidden rounded-lg border border-border">
-            <p className="bg-muted/50 px-3 py-2 text-xs font-semibold text-foreground">
+          <div key={day} className="overflow-hidden rounded-xl border border-border">
+            <p className="border-b border-border bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary dark:text-heading">
               {DAY_LABELS[day]}
             </p>
-            <div className="space-y-1.5 p-2">
+            <div className="space-y-2 p-3">
               {periods.map((period) => (
-                <div key={period.id} className="flex items-center gap-2">
-                  <span className="w-16 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                <div key={period.id} className="flex items-center gap-3">
+                  <span className="w-11 shrink-0 text-xs tabular-nums text-muted-foreground">
                     {period.startTime}
                   </span>
                   <div className="min-w-0 flex-1">{cellButton(day, period)}</div>
@@ -212,7 +234,7 @@ export function TimetableBuilder({
       <Dialog open={slot !== null} onOpenChange={(open) => !open && close()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-heading">
               {slot?.entry ? 'Edit slot' : 'Assign slot'} — {armLabel}
             </DialogTitle>
             <DialogDescription>
@@ -220,9 +242,9 @@ export function TimetableBuilder({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Subject</Label>
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <FormFieldLabel required>Subject</FormFieldLabel>
               <Select
                 value={classSubjectId}
                 onValueChange={(v) => {
@@ -230,7 +252,7 @@ export function TimetableBuilder({
                 }}
                 items={classSubjectOptions.map((cs) => ({ value: cs.id, label: cs.label }))}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full data-[size=default]:h-10" aria-label="Subject">
                   <SelectValue placeholder="Choose a subject…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,18 +271,19 @@ export function TimetableBuilder({
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="slot-room">Room (optional)</Label>
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="slot-room">Room (optional)</FormFieldLabel>
               <Input
                 id="slot-room"
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 placeholder="e.g. Lab 1"
+                className="h-10"
               />
             </div>
 
             {conflictError && (
-              <div className="flex items-start gap-2 rounded-lg border border-error-soft bg-error-soft px-3 py-2.5 text-sm text-error-soft-foreground">
+              <div className="flex items-start gap-2 rounded-xl border border-error-soft bg-error-soft px-3.5 py-3 text-sm text-error-soft-foreground">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>{conflictError}</span>
               </div>
@@ -274,7 +297,7 @@ export function TimetableBuilder({
                 size="sm"
                 onClick={() => void handleRemove()}
                 disabled={isRemoving || isSaving}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-destructive hover:text-destructive"
               >
                 {isRemoving ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />

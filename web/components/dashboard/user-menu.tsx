@@ -51,18 +51,18 @@ export function UserMenu({ session }: { session: Session }) {
           <Button
             variant="ghost"
             size="lg"
-            className="flex items-center gap-2 px-1.5 lg:pr-2"
+            className="flex h-10 items-center gap-2 rounded-md bg-card px-1 hover:bg-card lg:pr-3"
             disabled={loggingOut}
             aria-label="Account menu"
           />
         }
       >
-        <Avatar className="size-8">
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+        <Avatar className="size-8 rounded-md after:rounded-md">
+          <AvatarFallback className="rounded-md bg-primary/10 text-xs font-semibold text-primary dark:text-heading">
             {initials(session.user.name)}
           </AvatarFallback>
         </Avatar>
-        <span className="hidden max-w-[10rem] truncate text-sm font-medium lg:inline">
+        <span className="hidden max-w-[10rem] truncate text-sm font-medium text-heading lg:inline">
           {session.user.name}
         </span>
         <ChevronsUpDown className="hidden size-3.5 text-muted-foreground lg:inline" aria-hidden="true" />

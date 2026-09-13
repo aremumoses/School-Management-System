@@ -1,45 +1,25 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-// Semantic variants (a stat that carries a real pass/fail meaning, e.g.
-// today's attendance rate) — tint only the icon swatch, card stays neutral
-// `surface`, so the color reads as a status signal rather than decoration.
-const SEMANTIC_ICON_CLASSES = {
-  default: 'bg-primary/10 text-primary',
-  success: 'bg-success-soft text-success-soft-foreground',
-  warning: 'bg-warning-soft text-warning-soft-foreground',
-  error: 'bg-error-soft text-error-soft-foreground',
-  info: 'bg-info-soft text-info-soft-foreground',
+// Akademi's solid icon circle. Semantic variants carry a real pass/fail
+// meaning (e.g. today's attendance rate) and fill the circle with that status
+// colour; decorative variants are for plain counts ("Active students") and are
+// visual variety only. The glyph is decorative either way — the label names
+// the stat — which is why a white icon is acceptable even on amber.
+const CIRCLE_CLASSES = {
+  default: 'bg-primary',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  error: 'bg-destructive',
+  info: 'bg-info',
+  brand: 'bg-brand',
+  coral: 'bg-brand-coral',
+  amber: 'bg-brand-amber',
 } as const;
 
-// Decorative variants — a purely informational count with no pass/fail
-// meaning (e.g. "Active Students"). Tints the whole card per
-// prompts/00-DESIGN-SYSTEM.md §6's "Stat/KPI tiles" note; cycle these across
-// a row of otherwise-neutral counts for visual variety, don't use them for
-// anything a badge/semantic variant already covers.
-const TINT_CARD_CLASSES = {
-  violet: 'bg-stat-violet',
-  blue: 'bg-stat-blue',
-  orange: 'bg-stat-orange',
-  emerald: 'bg-stat-emerald',
-} as const;
-const TINT_ICON_CLASSES = {
-  violet: 'bg-card/70 text-stat-violet-foreground',
-  blue: 'bg-card/70 text-stat-blue-foreground',
-  orange: 'bg-card/70 text-stat-orange-foreground',
-  emerald: 'bg-card/70 text-stat-emerald-foreground',
-} as const;
-const TINT_SPARK_CLASSES = {
-  violet: 'text-stat-violet-foreground',
-  blue: 'text-stat-blue-foreground',
-  orange: 'text-stat-orange-foreground',
-  emerald: 'text-stat-emerald-foreground',
-} as const;
-
-type SemanticVariant = keyof typeof SEMANTIC_ICON_CLASSES;
-type TintVariant = keyof typeof TINT_CARD_CLASSES;
+type StatVariant = keyof typeof CIRCLE_CLASSES;
 
 export interface StatDelta {
   /** Signed percentage change, e.g. 8.4 or -2.1. */
@@ -80,51 +60,49 @@ export function StatCard({
   value: string | number;
   description?: string;
   icon: LucideIcon;
-  variant?: SemanticVariant | TintVariant;
+  variant?: StatVariant;
   delta?: StatDelta;
   /** Oldest → newest. Needs 2+ points to render; fewer is treated as none. */
   trend?: number[];
   /** Makes the whole tile a link — §4 wants KPI cards to be a way in. */
   href?: string;
 }) {
-  const isTint = variant in TINT_CARD_CLASSES;
-  const iconClasses = isTint
-    ? TINT_ICON_CLASSES[variant as TintVariant]
-    : SEMANTIC_ICON_CLASSES[variant as SemanticVariant];
+  // Poppins semibold figures run ~0.66em wide, so this is the value's width in ems.
+  const valueEms = (String(value).length * 0.66).toFixed(2);
 
   const body = (
     <Card
       className={cn(
-        'h-full rounded-2xl transition-all duration-[--duration-base] ease-[--ease-out-soft]',
-        isTint && TINT_CARD_CLASSES[variant as TintVariant],
+        '@container/stat h-full gap-0 rounded-xl py-0 ring-0 transition-all duration-[--duration-base] ease-[--ease-out-soft] dark:ring-1',
         href && 'group-hover/stat:-translate-y-0.5 group-hover/stat:shadow-md',
       )}
     >
-      <CardContent className="flex flex-col gap-3 py-1">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+      <div className="flex h-full flex-col gap-3 p-5">
+        <div className="flex flex-col items-start gap-3 @[13rem]/stat:flex-row @[13rem]/stat:items-center @[13rem]/stat:gap-4">
+          <span
+            className={cn(
+              'flex size-12 shrink-0 items-center justify-center rounded-full text-brand-foreground',
+              CIRCLE_CLASSES[variant],
+            )}
+          >
+            <Icon className="size-5" aria-hidden="true" />
+          </span>
+          <div className="w-full min-w-0 flex-1">
             {/* Wraps rather than truncates: in a two-column phone grid a
-                label like "Lessons today" does not fit on one line beside
-                the icon, and half a word is worse than two lines. */}
-            <p className="line-clamp-2 text-[13px] leading-snug font-medium text-muted-foreground">
-              {label}
-            </p>
+                label like "Lessons today" does not fit on one line, and half
+                a word is worse than two lines. */}
+            <p className="line-clamp-2 text-[13px] leading-snug text-muted-foreground">{label}</p>
+            {/* The figure shrinks to the width it has (tile width minus padding,
+                and minus the circle when it sits beside the text) rather than
+                wrapping or clipping: a cut-off naira balance is wrong, not ugly. */}
             <p
-              className={cn(
-                'mt-1 leading-none font-bold tracking-tight text-foreground tabular-nums',
-                valueSizeClass(value),
-              )}
+              className="mt-1 leading-tight font-semibold tracking-tight whitespace-nowrap text-heading [--stat-reserve:2.5rem] @[13rem]/stat:[--stat-reserve:6.5rem]"
+              style={{
+                fontSize: `clamp(0.875rem, calc((100cqi - var(--stat-reserve)) / ${valueEms}), 1.625rem)`,
+              }}
             >
               {value}
             </p>
-          </div>
-          <div
-            className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-xl',
-              iconClasses,
-            )}
-          >
-            <Icon className="size-[18px]" aria-hidden="true" />
           </div>
         </div>
 
@@ -143,15 +121,9 @@ export function StatCard({
             also makes the shape readable, which is the only thing a
             sparkline is for. */}
         {trend && trend.length > 1 && (
-          <Sparkline
-            points={trend}
-            className={cn(
-              '-mb-1 w-full',
-              isTint ? TINT_SPARK_CLASSES[variant as TintVariant] : 'text-primary',
-            )}
-          />
+          <Sparkline points={trend} className="-mb-1 mt-auto w-full text-primary" />
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 
@@ -160,29 +132,11 @@ export function StatCard({
   return (
     <Link
       href={href}
-      className="group/stat block rounded-2xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+      className="group/stat block rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
     >
       {body}
     </Link>
   );
-}
-
-/**
- * Step the headline down as it gets longer. A count ("23") and a formatted
- * currency balance ("\u20a61,284,500.00") are both legitimate `value`s, and at a
- * fixed 26px the second one overflows its tile in a two-column phone grid.
- * Scaling beats truncating: a clipped money figure is not just ugly, it is
- * wrong.
- */
-function valueSizeClass(value: string | number): string {
-  const length = String(value).length;
-  // Only the small end steps down: a four-across desktop tile is ~270px and
-  // fits a full naira figure at 26px comfortably, so the reduction is scoped
-  // below `sm` where the grid is two-up and ~170px per tile.
-  if (length <= 6) return 'text-[26px]';
-  if (length <= 9) return 'text-[22px] sm:text-[26px]';
-  if (length <= 12) return 'text-lg sm:text-2xl';
-  return 'text-base sm:text-xl';
 }
 
 function DeltaPill({ delta }: { delta: StatDelta }) {

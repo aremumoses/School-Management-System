@@ -85,7 +85,7 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             size="icon-lg"
-            className="relative text-muted-foreground hover:text-foreground"
+            className="relative size-10 rounded-md bg-card text-muted-foreground hover:bg-card hover:text-primary"
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
           />
         }
@@ -216,7 +216,7 @@ function NotificationRow({
       <div
         className={cn(
           'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full',
-          item.read ? 'bg-muted text-muted-foreground' : 'bg-stat-violet text-stat-violet-foreground',
+          item.read ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary',
         )}
       >
         <Icon className="size-3.5" aria-hidden="true" />

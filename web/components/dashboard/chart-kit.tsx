@@ -39,11 +39,18 @@ export const AXIS_TICK = {
   fill: 'var(--color-muted-foreground)',
 } as const;
 
+/** Solid hairlines — a dashed grid reads as a projection or threshold. */
 export const GRID_PROPS = {
   stroke: 'var(--color-border)',
-  strokeDasharray: '3 3',
   vertical: false,
 } as const;
+
+/**
+ * Markers are at least 8px with a 2px card-coloured ring, so they stay
+ * legible where they cross a line. Spread with the series `fill`.
+ */
+export const DOT_PROPS = { r: 4, strokeWidth: 2, stroke: 'var(--color-card)' } as const;
+export const ACTIVE_DOT_PROPS = { r: 6, strokeWidth: 2, stroke: 'var(--color-card)' } as const;
 
 export const TOOLTIP_PROPS = {
   cursor: { fill: 'var(--color-accent)', stroke: 'var(--color-border)' },
@@ -61,9 +68,14 @@ export const TOOLTIP_PROPS = {
 } as const;
 
 export const LEGEND_PROPS = {
-  wrapperStyle: { fontSize: 12, paddingTop: 8, color: 'var(--color-muted-foreground)' },
+  wrapperStyle: { fontSize: 12, paddingTop: 8 },
   iconType: 'circle' as const,
   iconSize: 8,
+  // Recharts paints legend text in the series hue; text stays in ink and the
+  // coloured dot beside it carries the identity.
+  formatter: (value: string) => (
+    <span style={{ color: 'var(--color-muted-foreground)' }}>{value}</span>
+  ),
 };
 
 /**
@@ -93,13 +105,13 @@ export function ChartCard({
   return (
     <section
       className={cn(
-        'flex flex-col gap-4 rounded-2xl bg-card p-5 ring-1 ring-foreground/10',
+        'flex flex-col gap-4 rounded-xl bg-card p-6 dark:ring-1 dark:ring-foreground/10',
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base leading-snug font-semibold text-foreground">{title}</h2>
+          <h2 className="text-lg leading-snug font-semibold text-heading">{title}</h2>
           {description && (
             <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
           )}

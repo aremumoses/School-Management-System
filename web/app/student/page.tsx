@@ -107,7 +107,7 @@ export default async function StudentHomePage() {
           value={openAssignments.length}
           description={overdueCount > 0 ? `${overdueCount} overdue` : 'Nothing overdue'}
           icon={ClipboardList}
-          variant={overdueCount > 0 ? 'warning' : 'violet'}
+          variant={overdueCount > 0 ? 'warning' : 'brand'}
           href="/student/assignments"
         />
         <StatCard
@@ -123,7 +123,7 @@ export default async function StudentHomePage() {
           value={todayLessons.length}
           description={timetable?.armLabel ?? 'No class assigned'}
           icon={Table2}
-          variant="blue"
+          variant="coral"
           href="/student/timetable"
         />
       </div>

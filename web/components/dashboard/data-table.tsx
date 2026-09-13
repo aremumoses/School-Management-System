@@ -31,8 +31,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { TablePagination } from './table-pagination';
 
-/** The data-table pattern from prompts/00-DESIGN-SYSTEM.md §6 — sticky header, sortable columns, row hover, pagination, and a real "no results" state for the search-filtered case (the all-empty case is handled by the page itself, before this component is even rendered). */
+/** The data-table pattern from prompts/00-DESIGN-SYSTEM.md §6, drawn as Akademi's table card — sticky header, sortable columns, row hover, pagination, and a real "no results" state for the search-filtered case (the all-empty case is handled by the page itself, before this component is even rendered). */
 export function DataTable<TData>({
   columns,
   data,
@@ -79,6 +80,8 @@ export function DataTable<TData>({
   });
 
   const rows = table.getRowModel().rows;
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
 
   // Sorting lives in the column headers, which the mobile card layout does
   // not render — so it gets its own control below md rather than silently
@@ -89,18 +92,18 @@ export function DataTable<TData>({
   const activeSort = sorting[0];
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
+    <div className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+      <div className="flex items-center gap-2 border-b border-border p-4 sm:px-5">
         <div className="relative w-full max-w-sm">
           <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder={searchPlaceholder}
-            className="pl-8"
+            className="h-10 pl-10"
             aria-label={searchPlaceholder}
           />
         </div>
@@ -108,7 +111,7 @@ export function DataTable<TData>({
         {sortableColumns.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="outline" size="lg" className="shrink-0 md:hidden" />}
+              render={<Button variant="outline" size="lg" className="h-10 shrink-0 md:hidden" />}
             >
               <ArrowDownUp className="size-4" />
               Sort
@@ -142,11 +145,11 @@ export function DataTable<TData>({
           a horizontally-scrolling grid. A 9-column student row is unusable
           on a phone at any scroll offset — the header scrolls out of view,
           so every cell loses the label that gave it meaning. */}
-      <div className="hidden rounded-lg border border-border md:block">
+      <div className="hidden md:block">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-primary/5 hover:bg-primary/5">
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sortDirection = header.column.getIsSorted();
@@ -176,6 +179,7 @@ export function DataTable<TData>({
                               : undefined
                       }
                       className={cn(
+                        'h-12 font-semibold text-primary first:pl-5 last:pr-5 dark:text-heading',
                         canSort &&
                           'cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                       )}
@@ -188,10 +192,7 @@ export function DataTable<TData>({
                           ) : sortDirection === 'desc' ? (
                             <ChevronDown className="size-3.5" aria-hidden="true" />
                           ) : (
-                            <ChevronsUpDown
-                              className="size-3.5 text-muted-foreground/50"
-                              aria-hidden="true"
-                            />
+                            <ChevronsUpDown className="size-3.5 opacity-50" aria-hidden="true" />
                           ))}
                       </div>
                     </TableHead>
@@ -211,11 +212,11 @@ export function DataTable<TData>({
               rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={cn('hover:bg-accent/60', rowClassName?.(row.original))}
+                  className={cn('hover:bg-primary/5', rowClassName?.(row.original))}
                   data-selected={row.getIsSelected() || undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3 first:pl-5 last:pr-5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -226,7 +227,7 @@ export function DataTable<TData>({
         </Table>
       </div>
 
-      <div className="space-y-2.5 md:hidden">
+      <div className="space-y-2.5 p-3 md:hidden">
         {rows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             No results match your search.
@@ -270,28 +271,15 @@ export function DataTable<TData>({
         )}
       </div>
 
-      {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-end gap-3">
-          <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
+      {filteredCount > 0 && (
+        <TablePagination
+          firstShown={pageIndex * pageSize + 1}
+          lastShown={Math.min((pageIndex + 1) * pageSize, filteredCount)}
+          total={filteredCount}
+          currentPage={pageIndex + 1}
+          pageCount={table.getPageCount()}
+          onPageChange={(page) => table.setPageIndex(page - 1)}
+        />
       )}
     </div>
   );

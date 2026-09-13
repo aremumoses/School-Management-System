@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -18,7 +19,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createStaff } from '@/lib/actions/staff';
 import { ROLE_LABELS } from '@/lib/role-labels';
 import type { StaffRoleName } from '@/lib/types/staff';
@@ -122,7 +122,7 @@ export function NewStaffDialog() {
         {temporaryPassword ? (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 text-heading">
                 <UserPlus className="size-4" aria-hidden="true" />
                 {createdName} was created
               </DialogTitle>
@@ -153,18 +153,21 @@ export function NewStaffDialog() {
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Add Staff Member</DialogTitle>
+              <DialogTitle className="text-lg font-semibold text-heading">Add Staff Member</DialogTitle>
               <DialogDescription>
                 A temporary password is generated automatically — you&apos;ll see it once, right
                 after creating.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <FormFieldLabel htmlFor="firstName" required>
+                    First Name
+                  </FormFieldLabel>
                   <Input
                     id="firstName"
+                    className="h-10"
                     aria-invalid={Boolean(errors.firstName)}
                     {...register('firstName')}
                   />
@@ -176,9 +179,12 @@ export function NewStaffDialog() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <FormFieldLabel htmlFor="lastName" required>
+                    Last Name
+                  </FormFieldLabel>
                   <Input
                     id="lastName"
+                    className="h-10"
                     aria-invalid={Boolean(errors.lastName)}
                     {...register('lastName')}
                   />
@@ -190,10 +196,13 @@ export function NewStaffDialog() {
                   )}
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="email">Email</Label>
+                  <FormFieldLabel htmlFor="email" required>
+                    Email
+                  </FormFieldLabel>
                   <Input
                     id="email"
                     type="email"
+                    className="h-10"
                     aria-invalid={Boolean(errors.email)}
                     {...register('email')}
                   />
@@ -205,20 +214,20 @@ export function NewStaffDialog() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (optional)</Label>
-                  <Input id="phone" placeholder="+2348012345678" {...register('phone')} />
+                  <FormFieldLabel htmlFor="phone">Phone (optional)</FormFieldLabel>
+                  <Input id="phone" className="h-10" placeholder="+2348012345678" {...register('phone')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="employmentDate">Employment Date</Label>
-                  <Input id="employmentDate" type="date" {...register('employmentDate')} />
+                  <FormFieldLabel htmlFor="employmentDate">Employment Date</FormFieldLabel>
+                  <Input id="employmentDate" type="date" className="h-10" {...register('employmentDate')} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Roles</Label>
-                <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-border p-3">
+                <FormFieldLabel>Roles</FormFieldLabel>
+                <div className="grid max-h-48 grid-cols-2 gap-2.5 overflow-y-auto rounded-xl border border-border bg-muted/30 p-4">
                   {STAFF_ROLES.map((role) => (
-                    <label key={role} className="flex items-center gap-2 text-sm">
+                    <label key={role} className="flex items-center gap-2 text-sm text-heading">
                       <Checkbox
                         checked={selectedRoles.includes(role)}
                         onCheckedChange={(checked) => toggleRole(role, checked === true)}
@@ -230,7 +239,7 @@ export function NewStaffDialog() {
               </div>
 
               <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" size="lg" disabled={isSubmitting}>
                   {isSubmitting ? 'Creating…' : 'Create Staff Member'}
                 </Button>
               </DialogFooter>

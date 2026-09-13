@@ -2,12 +2,12 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { getEmploymentRecord, listSalaryStructures, listStaffDocuments } from '@/lib/actions/hr';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { AcademicSessionDto, SubjectDto } from '@/lib/types/academic';
 import type { StaffDto, TeacherAssignmentDto } from '@/lib/types/staff';
 import { type ClassSubjectOption, type TermOption } from './teaching-assignments-section';
+import { StaffProfileHero } from './staff-profile-hero';
 import { StaffProfileTabs } from './staff-profile-tabs';
 
 export default async function StaffDetailPage({
@@ -58,15 +58,15 @@ export default async function StaffDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-3">
         <Link
           href="/admin/staff"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           Back to Staff Directory
         </Link>
-        <PageHeader title={`${staff.firstName} ${staff.lastName}`} description={staff.email} />
+        <StaffProfileHero staff={staff} employmentRecord={employmentRecord} />
       </div>
 
       <StaffProfileTabs

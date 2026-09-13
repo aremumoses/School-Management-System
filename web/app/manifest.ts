@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "School Management System for one secondary school in Lagos, Nigeria.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f8fafc", // --background, prompts/00-DESIGN-SYSTEM.md §2
-    theme_color: "#4f46e5", // --primary, prompts/00-DESIGN-SYSTEM.md §2
+    background_color: "#e8edf5", // --background, prompts/00-DESIGN-SYSTEM.md §2
+    theme_color: "#1d4ed8", // --primary, prompts/00-DESIGN-SYSTEM.md §2
     icons: [
       {
         src: "/icon-192.png",

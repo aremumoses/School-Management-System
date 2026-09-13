@@ -70,7 +70,7 @@ export default async function TranscriptsPage({
                 name="search"
                 defaultValue={search}
                 placeholder="Name or admission number…"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <button

@@ -14,9 +14,8 @@ The earlier Stage 32 restyle established the direction this builds on — light 
 
 | Token | Hex | Use |
 |---|---|---|
-| `primary` | `#6D28D9` (Violet 700) | Primary buttons, active nav item, links, focus rings, brand mark. 7.6:1 on `surface`, so it is also safe as text/icon colour |
-| `primary-hover` | `#5B21B6` (Violet 800) | Hover/pressed state of primary elements |
-| `primary-dark` | `#4C1D95` (Violet 900) | Deep-purple accents (promo cards, the login brand panel) — never the sidebar background, see §5 |
+| `primary` | `#1D4ED8` (Blue 700) — aliases `brand` | Primary buttons, links, focus rings, the sidebar fill. 6.7:1 on `surface`, so it is also safe as text/icon colour |
+| `primary-hover` | `#1E40AF` (Blue 800) — aliases `brand-hover` | Hover/pressed state of primary elements |
 | `secondary` | `#059669` (Emerald 600) | Positive metrics, "Paid"/"Present"/"Approved" badges, growth indicators on charts |
 | `accent` | `#F59E0B` (Amber 500) | High-attention CTAs ("Pay Now"), highlights, notification dots |
 | `success` | `#16A34A` (Green 600) | Success toasts, confirmation states |
@@ -24,7 +23,7 @@ The earlier Stage 32 restyle established the direction this builds on — light 
 | `error` | `#DC2626` (Red 600) | "Overdue"/"Absent"/"Failed" badges, destructive actions, form errors |
 | `info` | `#0284C7` (Sky 600) | Informational banners/tooltips |
 | `surface` | `#FFFFFF` | Card/panel backgrounds |
-| `background` | `#F6F7FB` | App background — a cool off-white, not pure Slate 50 |
+| `background` | `#E8EDF5` | App background — Akademi's grey-blue canvas, so white cards read as raised panels. Components that want a *white* surface use `bg-card`, never `bg-background` |
 | `border` | `#E6E8F0` | Card borders, dividers |
 | `text-primary` | `#0E1220` | Headings, primary body text |
 | `text-secondary` | `#58617A` | Secondary/helper text — 5.9:1 on `surface` |
@@ -32,14 +31,7 @@ The earlier Stage 32 restyle established the direction this builds on — light 
 
 Every one of these has a re-stepped dark-mode counterpart in `globals.css`; see §11. The **categorical chart palette** (`--chart-1` … `--chart-5`) is deliberately *not* in this table — it is a validated set with its own rules, in §7.
 
-**Stat-tile tints** (new, Stage 32) — for the shared `StatCard` component's *purely decorative* count tiles (e.g. "Active Students", "Active Staff" on the Admin home — a headline number with no pass/fail meaning). These are visual variety, not status signals — do not use them for anything a badge already covers (payment/attendance/approval status keep using the `*-soft` pairs below, unchanged):
-
-| Token | Background | Foreground (icon/text) |
-|---|---|---|
-| `stat-violet` | `#EDE9FE` | `#6D28D9` |
-| `stat-blue` | `#DBEAFE` | `#1D4ED8` |
-| `stat-orange` | `#FFEDD5` | `#C2410C` |
-| `stat-emerald` | `#D1FAE5` | `#047857` |
+**Stat-tile circles** (Akademi, 2026-09-13; replaced the Stage 32 pastel `stat-*` tints) — the shared `StatCard` shows a solid colour circle with a white icon beside its label and value. A purely informational count (e.g. "Active students") takes a *decorative* variant — `brand`, `coral` (`brand-coral`) or `amber` (`brand-amber`) — cycled across a row for variety. A tile with a real pass/fail meaning (attendance rate, collection rate) takes a *semantic* variant (`default`/`success`/`warning`/`error`/`info`), which fills the circle with that status colour. The glyph is decorative — the label names the stat — so a white icon is acceptable even on amber.
 
 **Rule**: color is never the only signal. Every status badge pairs its color with a text label (e.g., a red badge always also says "Overdue", never just a red dot). The same rule is why a KPI delta carries an arrow glyph as well as a tint, and why the mobile bottom tab bar marks the active tab with a filled pill behind the icon and not just a colour change.
 
@@ -56,8 +48,34 @@ Every one of these has a re-stepped dark-mode counterpart in `globals.css`; see 
 
 The base `success`/`warning`/`error`/`info` colors from the table above are for icons, chart series, and borders — not for pairing with same-hue text on a light tint, and not for white text either (e.g. white-on-`success` is only 3.3:1, white-on-`warning` only 3.2:1 — both fail). `error`/`#DC2626` does clear AA with white text (4.83:1) if a solid-fill destructive button is ever needed.
 
+### Akademi brand set (redesign in progress)
+The UI is being restyled module by module to follow the Akademi school-admin template, in blue rather than Akademi's violet. `primary`, `ring` and the light-mode `sidebar` alias `brand`, so the brand hue is app-wide even on screens whose layout has not been converted yet:
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `brand` / `brand-foreground` | `#1D4ED8` / white (6.7:1) | `#2F6FEB` / white (4.6:1) | Brand panels, the sidebar, primary CTAs. As small text on a dark card it is only 3.8:1 — use it for icons and large text there, `foreground` for small labels |
+| `brand-hover` | `#1E40AF` | `#2563EB` | Hover fill for `brand` |
+| `brand-coral` | `#FB7D5B` | `#FB7D5B` | Logo mark and decorative accents only — 2.6:1 with white, never behind readable text |
+| `brand-amber` | `#FCC43E` | `#FCC43E` | Akademi's yellow — decorative stat circles only, never text or a fill behind text |
+| `heading` | `#303972` (10.7:1) | `#E9ECF5` | Titles, form labels, and input text on converted screens |
+
+Akademi's muted body grey (`#A098AE`) is deliberately **not** adopted: it is 2.8:1 on white and fails AA. Converted screens keep `muted-foreground` for secondary text.
+
+Converted so far: auth (`/login`); the app shell (sidebar, top bar, page background) for all 10 dashboards; the admin dashboard, including the shared `StatCard`, `ChartCard`, `GreetingHeader`, `ActivityFeed`, `QuickActions` and `AtRiskList` it uses (so their restyle also reaches the other dashboards); the admin Students module (directory, profile and its tabs, add-student wizard), plus the shared `PageHeader`, `Stepper` and `InlineEditField`; the admin Staff module (directory, add-staff dialog, profile and its tabs — the profile and directory are also what HR sees), plus the shared `DataTable` (restyled for all 20 list pages that use it), `ProfileHero`, `FormFieldLabel`, `TablePagination` and the `pill` tab variant; the admin Academics setup pages (sessions and terms, classes and arms, subjects and their class mapping).
+
+Patterns established so far — reuse them rather than re-deriving per module:
+- **Toolbar card**: search and filters sit together in a white `rounded-xl bg-card` panel above the list, with 40px controls.
+- **Table card**: a white `rounded-xl bg-card` panel (ring only in dark mode); a `bg-primary/5` header row with `font-semibold text-primary` headings; 20px outer cell padding; an avatar beside a `text-heading` name; identifiers in `text-primary`; a footer reading "Showing X–Y of Z" with numbered page buttons. `DataTable` draws this whole pattern (its search sits in the card's top bar), and `TablePagination` is the footer for hand-built tables.
+- **Profile hero**: a `brand` banner with decorative coral and amber blocks, the photo overlapping it with an 8px card-coloured ring, the name as the page's H1, and key details beside `brand-coral` icon circles. Use the shared `ProfileHero`.
+- **Expandable list card**: a white card whose header row (a `bg-primary/10` icon circle, a `text-heading` title, a muted one-line summary, a chevron) toggles a divided list of child rows; the toggle carries `aria-expanded`. Child items that are just names (e.g. class arms) are `bg-primary/10` pills with their edit/delete buttons inside.
+- **Pill tabs**: `<TabsList variant="pill">` — a white rounded tab strip; the active tab is `bg-primary/10 text-primary`.
+- **Form fields**: `text-primary` labels (`text-heading` in dark mode), a red asterisk plus a screen-reader "(required)" on required fields, and 44px inputs and selects. Use the shared `FormFieldLabel`.
+- Small text in `text-primary` swaps to `text-foreground`/`text-heading` in dark mode, where the brand blue is only 3.8:1 on a card.
+
+The project holds an Akademi license, so the template's imagery can be used on converted screens. The login panel uses its 3D character (`web/public/auth/login-illustration.png`, cropped from the template's `pic-2.png`). Skip template imagery whose content does not fit this product — e.g. its demo cards with crypto and dollar figures.
+
 ## 3. Typography
-- **Font**: [Inter](https://fonts.google.com/specimen/Inter) (variable font) for everything — UI text, body copy, and numbers. Load via `next/font/google`. Inter's numeral legibility matters here: this app is full of scores, currency, and dates. Use `font-feature-settings: "tnum"` (tabular numbers) in any table column with numbers, so digits align.
+- **Font**: [Poppins](https://fonts.google.com/specimen/Poppins) for everything — UI text, body copy, and numbers — matching the Akademi template. Load via `next/font/google`. Poppins is not a variable font, so the weights in use (300–700) are listed explicitly in `app/layout.tsx`; a weight outside that list renders as the nearest loaded one. Use `tabular-nums` in any table column with numbers, so digits align.
 - **Type scale** (Tailwind classes, mobile-first — these sizes apply at all breakpoints unless a screen says otherwise):
 
 | Role | Class | Size / Line height | Weight |
@@ -85,9 +103,9 @@ H1 steps down to `text-2xl` below `sm`. At 375px a 30px bold heading consumes a 
 - Max content width: forms/detail panels `max-w-2xl`; full dashboard content area `max-w-7xl` centered, with the sidebar fixed outside that.
 
 ## 5. Layout Patterns
-- **Staff dashboards** (Admin, Teacher, Bursar, Exam Officer, Librarian, Hostel/Transport, HR, Front Desk): persistent left sidebar on a light `surface` background (not a solid `primary-dark` fill), with a `sidebar-primary` tinted pill marking the active item. User-collapsible to a 72px icon rail via the control at the sidebar's foot; the choice persists in `localStorage` (it's a viewport preference, not user data — don't spend a round-trip on it). Below `md` the same nav opens as a slide-over sheet.
+- **Staff dashboards** (Admin, Teacher, Bursar, Exam Officer, Librarian, Hostel/Transport, HR, Front Desk): persistent left sidebar filled with `brand` (Akademi's solid column; deep navy in dark mode, where a blue column would glare), white text, and a translucent white `sidebar-primary` pill marking the active item. User-collapsible to an 88px icon rail via the grid button at the left of the top bar; the choice persists in `localStorage` (it's a viewport preference, not user data — don't spend a round-trip on it). Below `md` the same nav opens as a slide-over sheet.
 - **Grouped navigation is mandatory, not optional.** Every nav item declares a `group` and an `icon` in `lib/dashboard-config.ts`; the sidebar buckets them under small uppercase section headings in first-appearance order. Admin alone has 25 destinations — a flat list of that length is not navigable, and the icons are what keep the collapsed rail usable. Icons are referenced *by name* through `lib/nav-icons.ts`, never as component references: the nav list is built in a Server Component and handed to a Client Component, and a component reference cannot cross that boundary.
-- **Top bar**: breadcrumbs (dashboard → nav group → page) on the left, then global search, theme toggle, notification bell and user menu on the right. It is `sticky top-0` with a translucent blurred background so the trail and the search stay reachable down a long table. Below `sm` the breadcrumb collapses to just the current page's name.
+- **Top bar**: sits on the page background with no fill or border, Akademi-style. On the left, the sidebar toggle and breadcrumbs (dashboard → nav group → page), with the current page set large in `heading` colour so it doubles as the header title; on the right, global search, theme toggle, notification bell and user menu as white `bg-card` squares. It is `sticky top-0` with a translucent blurred background so the trail and the search stay reachable down a long table. Below `sm` the breadcrumb collapses to just the current page's name.
 - **Parent & Student dashboards**: mobile-first. Below `md`, a **fixed bottom tab bar** (4–5 items, last one "More") — the primary nav for most parents, who use this on a phone. The active tab is marked by a filled pill behind its icon as well as by colour, so the state is not colour-only. Tabs use `shortLabel` where the full nav label won't fit ~70px. "More" opens a **bottom sheet** carrying the same grouped nav, not a side drawer. Above `md` the same items move into the standard left sidebar.
 - Every page has a clear page title (H1) and, where relevant, a primary action top-right (e.g., "+ Add Student", "Broadcast Notice").
 - **Dashboard home pages** open with `GreetingHeader` rather than `PageHeader`: greeting, school name, session, term and today's date. Every figure below is meaningless without knowing which term it belongs to, and admins routinely have last term open in another tab.
@@ -103,7 +121,7 @@ H1 steps down to `text-2xl` below `sm`. At 375px a 30px bold heading consumes a 
   **Below `md` the table becomes a card list**, one card per row with each cell labelled by its column header. A nine-column student row cannot be read on a phone at any horizontal scroll offset, because the header scrolls out of view and every cell loses the label that gave it meaning. Sorting moves into an explicit "Sort" dropdown at that width, since the headers it normally lives in are no longer rendered.
 - **Forms** (React Hook Form + Zod + shadcn Form): label above input, helper text below in `text-secondary`, validation errors in `error` color with a small icon, required fields marked with a subtle asterisk, submit button shows a spinner + disables while pending.
 - **Cards**: `surface` background, `border` 1px, `shadow-sm`, `rounded-xl`, `p-6`.
-- **Stat/KPI tiles** (the shared `StatCard` component): Stage 32 — a purely-informational count tile (no pass/fail meaning, e.g. "Active Students") gets a full pastel-tinted card background from the `stat-*` tokens in §2, cycled for visual variety across a row; a tile that DOES carry a status meaning (e.g. today's attendance rate, fee collection rate) keeps using the semantic `default`/`success`/`warning`/`error`/`info` variants instead, tinting only the icon swatch as before — don't tint a meaningful stat's whole card with a decorative color, that would muddy the signal.
+- **Stat/KPI tiles** (the shared `StatCard` component): a white card with Akademi's solid icon circle (see "Stat-tile circles" in §2). Informational counts take a decorative variant (`brand`/`coral`/`amber`); a tile with a status meaning takes a semantic variant — don't give a meaningful stat a decorative colour, that would muddy the signal. The circle sits beside the text when the tile is at least 13rem wide (a container query) and stacks above it otherwise — the same rule for every tile, so a row never mixes layouts. The value's font size is computed from the tile width and the value's length, so a long naira balance shrinks to fit rather than wrapping or clipping. Values use proportional figures, never `tabular-nums`.
 - **Modals/Dialogs**: centered, backdrop blur (`backdrop-blur-sm` + `bg-black/30`), max-width scaled to content, always keyboard-dismissible (Esc) and focus-trapped.
 - **Toasts**: bottom-right on desktop, top-center on mobile, auto-dismiss after 4s, success/error variants matching the semantic palette.
 - **Empty / error states**: use the shared `EmptyState` and `ErrorState` (`components/dashboard/`), never a bespoke centred paragraph. Both answer the same three questions in the same order — what would be here, why it isn't, and the one next action — so a user who has learned one recognises all of them. An empty-state `title` names the missing thing ("No students yet"), not the failure ("Nothing found"). An error state says what the user lost and what to do next; it never surfaces a status code or an exception message.
@@ -116,11 +134,13 @@ Charts are read by people and executed by us, so the colour part is computed rat
 
 | Slot | Hue | Light | Dark |
 |---|---|---|---|
-| `--chart-1` | violet (brand) | `#6d28d9` | `#8b5cf6` |
-| `--chart-2` | sky | `#0ea5e9` | `#1e90d0` |
-| `--chart-3` | emerald | `#10b981` | `#0d9668` |
-| `--chart-4` | orange | `#ea7c0b` | `#c2740a` |
-| `--chart-5` | pink | `#ec4899` | `#d9508e` |
+| `--chart-1` | blue (brand) | `#1d4ed8` | `#2f6feb` |
+| `--chart-2` | orange | `#eb6834` | `#d95926` |
+| `--chart-3` | aqua | `#1baf7a` | `#199e70` |
+| `--chart-4` | yellow | `#eda100` | `#c98500` |
+| `--chart-5` | magenta | `#e87ba4` | `#d55181` |
+
+Re-derived 2026-09-13 for the blue brand: the data-viz skill's documented default order, with slot 1 snapped to `brand`. Worst adjacent colourblind separation ΔE 9.1 light / 8.4 dark, normal-vision 19.6 / 19.3. **Slots 3–5 are below 3:1 on the white card**, so they may only be used where every value is also shown as a visible label or in a table view. In practice: a single-series chart uses slot 1, and a two-series stack uses slots 1–2.
 
 Rules that are not negotiable, because breaking them silently produces a chart that misleads:
 
@@ -132,7 +152,7 @@ Rules that are not negotiable, because breaking them silently produces a chart t
 - **Two or more series always carry a legend**, and stacked segments get a 2px `var(--color-card)` gap between them so the boundary reads without depending on the hue difference.
 - **Read colours from CSS variables, never from literals.** `fill={SERIES[2]}` resolves through `--chart-3`, which is redefined under `.dark` — so a chart is correct in both themes with no `useTheme` call and no second colour table. A hardcoded `#ef4444` stays bright red on a charcoal card.
 
-Shared furniture lives in `components/dashboard/chart-kit.tsx`: `SERIES`, `SEMANTIC`, `AXIS_TICK`, `GRID_PROPS`, `TOOLTIP_PROPS`, `LEGEND_PROPS`, and the `ChartCard` wrapper. `ChartCard` takes an `isEmpty` flag and renders a message in place of the plot — no chart should ever draw an empty axis frame with nothing in it. Grid and axes stay recessive (dashed `border`-coloured horizontals, no vertical grid, no axis lines).
+Shared furniture lives in `components/dashboard/chart-kit.tsx`: `SERIES`, `SEMANTIC`, `AXIS_TICK`, `GRID_PROPS`, `TOOLTIP_PROPS`, `LEGEND_PROPS`, and the `ChartCard` wrapper. `ChartCard` takes an `isEmpty` flag and renders a message in place of the plot — no chart should ever draw an empty axis frame with nothing in it. Grid and axes stay recessive (solid 1px `border`-coloured horizontals — never dashed — no vertical grid, no axis lines). Marks: 2px lines; markers `r=4` with a 2px `var(--color-card)` ring (`DOT_PROPS` / `ACTIVE_DOT_PROPS`); area fills as a light wash (~12% at the top); bars at most 24px thick with a 4px rounded data-end.
 
 **Never invent a data point to fill a slot.** A stat with one period of history gets no sparkline; a trend needing two terms says so rather than drawing a flat line at zero.
 

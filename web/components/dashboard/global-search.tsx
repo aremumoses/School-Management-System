@@ -355,7 +355,7 @@ export function GlobalSearchTrigger({ navItems }: { navItems: NavItem[] }) {
       <button
       type="button"
       onClick={() => setOpen(true)}
-      className="flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-2.5 text-sm text-muted-foreground transition-colors duration-[--duration-fast] hover:border-input hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:w-64 lg:w-72"
+      className="flex size-10 items-center justify-center gap-2 rounded-md bg-card text-sm text-muted-foreground transition-colors duration-[--duration-fast] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:w-64 md:justify-start md:px-3 lg:w-72"
       aria-label="Search pages, students and staff"
       >
       <Search className="size-4 shrink-0" aria-hidden="true" />

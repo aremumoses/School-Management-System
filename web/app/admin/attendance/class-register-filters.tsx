@@ -1,8 +1,8 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -80,15 +80,15 @@ export function ClassRegisterFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1.5">
-        <Label>Class</Label>
+    <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+      <div className="space-y-2">
+        <FormFieldLabel>Class</FormFieldLabel>
         <Select
           value={classId}
           onValueChange={handleClassChange}
           items={classes.map((klass) => ({ value: klass.id, label: klass.name }))}
         >
-          <SelectTrigger className="w-36" aria-label="Class">
+          <SelectTrigger className="w-full data-[size=default]:h-10 sm:w-40" aria-label="Class">
             <SelectValue placeholder="Class" />
           </SelectTrigger>
           <SelectContent>
@@ -100,15 +100,15 @@ export function ClassRegisterFilters({
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1.5">
-        <Label>Arm</Label>
+      <div className="space-y-2">
+        <FormFieldLabel>Arm</FormFieldLabel>
         <Select
           value={armId}
           onValueChange={handleArmChange}
           disabled={!selectedClass}
           items={armsForSelectedClass.map((arm) => ({ value: arm.id, label: arm.name }))}
         >
-          <SelectTrigger className="w-32" aria-label="Arm">
+          <SelectTrigger className="w-full data-[size=default]:h-10 sm:w-36" aria-label="Arm">
             <SelectValue placeholder="Arm" />
           </SelectTrigger>
           <SelectContent>
@@ -120,18 +120,18 @@ export function ClassRegisterFilters({
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="register-date">Date</Label>
+      <div className="space-y-2">
+        <FormFieldLabel htmlFor="register-date">Date</FormFieldLabel>
         <Input
           id="register-date"
           type="date"
-          className="w-40"
+          className="h-10 w-full sm:w-44"
           value={date}
           onChange={(e) => handleDateChange(e.target.value)}
         />
       </div>
-      <div className="space-y-1.5">
-        <Label>Period</Label>
+      <div className="col-span-2 space-y-2 sm:col-span-1">
+        <FormFieldLabel>Period</FormFieldLabel>
         <Select
           value={classSubjectId ?? DAILY_VALUE}
           onValueChange={handlePeriodChange}
@@ -140,7 +140,7 @@ export function ClassRegisterFilters({
             ...periodOptions.map((p) => ({ value: p.classSubjectId, label: p.subjectName })),
           ]}
         >
-          <SelectTrigger className="w-48" aria-label="Period">
+          <SelectTrigger className="w-full data-[size=default]:h-10 sm:w-52" aria-label="Period">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

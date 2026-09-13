@@ -128,7 +128,7 @@ export function PromotionWizard({
               id="sessionId"
               value={sessionId}
               onChange={(e) => { setSessionId(e.target.value); setSuggestions(null); setCommitted(false); }}
-              className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full max-w-xs rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>

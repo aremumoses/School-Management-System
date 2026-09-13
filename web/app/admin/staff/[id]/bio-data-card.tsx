@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -85,11 +93,13 @@ export function BioDataCard({ staff, isSelf }: { staff: StaffDto; isSelf: boolea
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle>Bio-data</CardTitle>
-        <div className="flex items-center gap-2">
+    <Card className="rounded-xl ring-0 [--card-spacing:--spacing(6)] dark:ring-1">
+      <CardHeader className="border-b">
+        <CardTitle className="text-lg font-semibold text-heading">Bio-data</CardTitle>
+        <CardDescription>Contact details and employment date.</CardDescription>
+        <CardAction className="flex items-center gap-2 self-center">
           <Label htmlFor="active-toggle" className="text-sm text-muted-foreground">
+            <span className="sr-only">Status: </span>
             {isActive ? 'Active' : 'Inactive'}
           </Label>
           {isSelf ? (
@@ -115,15 +125,18 @@ export function BioDataCard({ staff, isSelf }: { staff: StaffDto; isSelf: boolea
               }}
             />
           )}
-        </div>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+          <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <FormFieldLabel htmlFor="firstName" required>
+                First Name
+              </FormFieldLabel>
               <Input
                 id="firstName"
+                className="h-11"
                 aria-invalid={Boolean(errors.firstName)}
                 {...register('firstName')}
               />
@@ -135,9 +148,12 @@ export function BioDataCard({ staff, isSelf }: { staff: StaffDto; isSelf: boolea
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <FormFieldLabel htmlFor="lastName" required>
+                Last Name
+              </FormFieldLabel>
               <Input
                 id="lastName"
+                className="h-11"
                 aria-invalid={Boolean(errors.lastName)}
                 {...register('lastName')}
               />
@@ -149,10 +165,13 @@ export function BioDataCard({ staff, isSelf }: { staff: StaffDto; isSelf: boolea
               )}
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="email">Email</Label>
+              <FormFieldLabel htmlFor="email" required>
+                Email
+              </FormFieldLabel>
               <Input
                 id="email"
                 type="email"
+                className="h-11"
                 aria-invalid={Boolean(errors.email)}
                 {...register('email')}
               />
@@ -164,17 +183,19 @@ export function BioDataCard({ staff, isSelf }: { staff: StaffDto; isSelf: boolea
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register('phone')} />
+              <FormFieldLabel htmlFor="phone">Phone</FormFieldLabel>
+              <Input id="phone" className="h-11" {...register('phone')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employmentDate">Employment Date</Label>
-              <Input id="employmentDate" type="date" {...register('employmentDate')} />
+              <FormFieldLabel htmlFor="employmentDate">Employment Date</FormFieldLabel>
+              <Input id="employmentDate" type="date" className="h-11" {...register('employmentDate')} />
             </div>
           </div>
-          <Button type="submit" disabled={isSubmitting || !isDirty}>
-            {isSubmitting ? 'Saving…' : 'Save Changes'}
-          </Button>
+          <div className="flex justify-end border-t border-border pt-6">
+            <Button type="submit" size="lg" disabled={isSubmitting || !isDirty}>
+              {isSubmitting ? 'Saving…' : 'Save Changes'}
+            </Button>
+          </div>
         </form>
       </CardContent>
 

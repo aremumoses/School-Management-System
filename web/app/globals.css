@@ -73,6 +73,13 @@
   --color-info: var(--info);
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-foreground: var(--brand-accent-foreground);
+  /* Akademi brand set, design system §2 — see the migration note there. */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-amber: var(--brand-amber);
+  --color-heading: var(--heading);
   /* Verified badge pairs — use these for every status badge/pill. */
   --color-success-soft: var(--success-soft);
   --color-success-soft-foreground: var(--success-soft-foreground);
@@ -82,15 +89,6 @@
   --color-error-soft-foreground: var(--error-soft-foreground);
   --color-info-soft: var(--info-soft);
   --color-info-soft-foreground: var(--info-soft-foreground);
-  /* Decorative KPI-tile tints (StatCard), NOT status badges. */
-  --color-stat-violet: var(--stat-violet);
-  --color-stat-violet-foreground: var(--stat-violet-foreground);
-  --color-stat-blue: var(--stat-blue);
-  --color-stat-blue-foreground: var(--stat-blue-foreground);
-  --color-stat-orange: var(--stat-orange);
-  --color-stat-orange-foreground: var(--stat-orange-foreground);
-  --color-stat-emerald: var(--stat-emerald);
-  --color-stat-emerald-foreground: var(--stat-emerald-foreground);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -124,17 +122,17 @@
   /* Design system §2 — light mode.
      Neutrals carry a slight cool (blue-violet) cast so they sit under the
      brand hue rather than fighting it. */
-  --background: #f6f7fb;
+  /* Akademi's grey-blue canvas, so white cards read as raised panels. */
+  --background: #e8edf5;
   --foreground: #0e1220;
   --card: #ffffff;
   --card-foreground: #0e1220;
   --popover: #ffffff;
   --popover-foreground: #0e1220;
 
-  /* Deep indigo-violet, §2. Deeper than a mid violet on purpose: 7.6:1 on
-     white, so primary-coloured text and icons pass AA without a second
-     "text" variant of the brand color. */
-  --primary: #6d28d9;
+  /* Aliases --brand (blue, 6.7:1 on white) so the whole app shares one brand
+     hue, and primary-coloured text and icons pass AA without a text variant. */
+  --primary: var(--brand);
   --primary-foreground: #ffffff;
 
   /* Neutral structural slot (low-emphasis buttons) — see note above. */
@@ -153,7 +151,7 @@
 
   --border: #e6e8f0;
   --input: #dcdfea;
-  --ring: #6d28d9;
+  --ring: var(--brand);
 
   --radius: 0.75rem; /* 12px -> rounded-lg, per §4 */
 
@@ -176,40 +174,41 @@
   --info-soft: #e0f2fe;
   --info-soft-foreground: #075985;
 
-  /* Decorative KPI-tile tints, §2/§6 — StatCard only, never a status badge
-     (those keep using the *-soft pairs above, unchanged). */
-  --stat-violet: #ede9fe;
-  --stat-violet-foreground: #5b21b6;
-  --stat-blue: #dbeafe;
-  --stat-blue-foreground: #1d4ed8;
-  --stat-orange: #ffedd5;
-  --stat-orange-foreground: #c2410c;
-  --stat-emerald: #d1fae5;
-  --stat-emerald-foreground: #047857;
-
   /* Bold brand accent for high-attention CTAs, §2 — distinct from the
      neutral structural --accent slot above. */
   --brand-accent: #f59e0b;
   --brand-accent-foreground: #0e1220; /* dark text for AA contrast on amber */
 
-  /* Categorical series palette, §7 — validated, see the header note.
-     Order: violet (brand) → sky → emerald → orange → pink. */
-  --chart-1: #6d28d9;
-  --chart-2: #0ea5e9;
-  --chart-3: #10b981;
-  --chart-4: #ea7c0b;
-  --chart-5: #ec4899;
+  /* Akademi brand set, §2, in blue rather than Akademi's violet. --brand is
+     6.7:1 against white, so it works both as a fill behind white text and as
+     text on a card. --brand-coral is decorative only (2.6:1 with white). */
+  --brand: #1d4ed8;
+  --brand-hover: #1e40af;
+  --brand-foreground: #ffffff;
+  --brand-coral: #fb7d5b;
+  --brand-amber: #fcc43e; /* decorative stat circles only, never text */
+  --heading: #303972;
 
-  /* App sidebar, §5 — a light surface that reads as part of the page shell,
-     with a tinted pill (not a fill) marking the active item. */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #3b4459;
-  --sidebar-primary: #ede9fe; /* active nav pill */
-  --sidebar-primary-foreground: #5b21b6;
-  --sidebar-accent: #f4f5fa; /* hover within sidebar */
-  --sidebar-accent-foreground: #0e1220;
-  --sidebar-border: #e9ebf2;
-  --sidebar-ring: #6d28d9;
+  /* Categorical series palette, §7 — validated as a set in both modes.
+     Order: blue (brand) → orange → aqua → yellow → magenta. Slots 3–5 are
+     under 3:1 on white, so they need visible labels or a table view. */
+  --chart-1: #1d4ed8;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+
+  /* App sidebar, §5 — Akademi's solid brand column. Text is white; muted
+     labels use sidebar-foreground/80, the lowest opacity that still clears
+     AA on --brand (4.8:1). */
+  --sidebar: var(--brand);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: rgb(255 255 255 / 0.15); /* active nav pill */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.1); /* hover within sidebar */
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.14);
+  --sidebar-ring: #ffffff;
 }
 
 .dark {
@@ -223,7 +222,7 @@
   --popover: #171d2c;
   --popover-foreground: #e9ecf5;
 
-  --primary: #8b5cf6; /* lifted for legibility on a dark ground */
+  --primary: var(--brand);
   --primary-foreground: #ffffff;
 
   --secondary: #232a3b;
@@ -240,7 +239,7 @@
 
   --border: #262d40;
   --input: #2d3547;
-  --ring: #8b5cf6;
+  --ring: var(--brand);
 
   /* Dark surfaces get depth from a darker, wider shadow — the light-mode
      tints would be invisible against #0b0e17. */
@@ -262,37 +261,37 @@
   --info-soft: #0b2c42;
   --info-soft-foreground: #7dd3fc;
 
-  /* Decorative KPI-tile tints, dark-mode pairs. */
-  --stat-violet: #241a4d;
-  --stat-violet-foreground: #c4b5fd;
-  --stat-blue: #12233f;
-  --stat-blue-foreground: #93c5fd;
-  --stat-orange: #33200f;
-  --stat-orange-foreground: #fdba74;
-  --stat-emerald: #0c2b23;
-  --stat-emerald-foreground: #6ee7b7;
-
   --brand-accent: #fbbf24;
   --brand-accent-foreground: #0e1220;
 
-  /* Same five hues, re-stepped for the dark card surface and re-validated
-     as a set — NOT the light values dimmed. */
-  --chart-1: #8b5cf6;
-  --chart-2: #1e90d0;
-  --chart-3: #0d9668;
-  --chart-4: #c2740a;
-  --chart-5: #d9508e;
+  /* Lifted for a dark ground; white text on it still clears AA (4.6:1). As
+     small text on a dark card it is only 3.8:1, so keep text-primary for
+     icons and large text there. */
+  --brand: #2f6feb;
+  --brand-hover: #2563eb;
+  --brand-foreground: #ffffff;
+  --brand-coral: #fb7d5b;
+  --brand-amber: #fcc43e;
+  --heading: #e9ecf5;
 
-  /* Dark mode keeps the sidebar flush with the page ground (a light sidebar
-     would glare against a dark page) and separates it with a border only. */
-  --sidebar: #0d1119;
-  --sidebar-foreground: #b6bed1;
-  --sidebar-primary: #241a4d; /* active nav pill */
-  --sidebar-primary-foreground: #c4b5fd;
-  --sidebar-accent: #171d2c;
-  --sidebar-accent-foreground: #f4f6fb;
-  --sidebar-border: #1e2534;
-  --sidebar-ring: #8b5cf6;
+  /* Same five hues, re-stepped for the dark card surface and re-validated
+     as a set — NOT the light values dimmed. All clear 3:1 on --card. */
+  --chart-1: #2f6feb;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+
+  /* A solid blue column would glare against a dark page, so dark mode uses a
+     deep navy panel and moves the brand fill onto the active item. */
+  --sidebar: #0f1830;
+  --sidebar-foreground: #c3cce0;
+  --sidebar-primary: var(--brand); /* active nav pill */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.06);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-ring: #93b4f8;
 }
 
 @layer base {
@@ -307,11 +306,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Inter ships stylistic alternates that make it read considerably less
-       "default Tailwind": ss03 gives the single-storey a-less italics and
-       cv11 the disambiguated 1/l/I. Costs nothing, applied globally. */
-    font-feature-settings: "cv11", "ss01";
-    font-variation-settings: normal;
   }
   html {
     @apply font-sans;
@@ -398,5 +392,37 @@
   }
   to {
     background-position: -60% 0;
+  }
+}
+
+@layer components {
+  /* Slow idle drift for decorative floating cards (auth brand panel). The
+     global reduced-motion guard above stops these too. */
+  .animate-float-a {
+    animation: float-a 5s ease-in-out infinite;
+  }
+
+  .animate-float-b {
+    animation: float-b 5s ease-in-out infinite;
+  }
+}
+
+@keyframes float-a {
+  0%,
+  100% {
+    transform: rotate(-1deg) translate(-2px, -2px);
+  }
+  50% {
+    transform: rotate(1deg) translate(2px, 2px);
+  }
+}
+
+@keyframes float-b {
+  0%,
+  100% {
+    transform: rotate(1deg) translate(2px, 2px);
+  }
+  50% {
+    transform: rotate(-1deg) translate(-2px, -2px);
   }
 }

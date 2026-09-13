@@ -48,18 +48,20 @@ export function StaffProfileTabs({
   if (variant === 'hr') {
     return (
       <Tabs defaultValue={defaultTab ?? 'employment-record'}>
-        <TabsList>
-          <TabsTrigger value="employment-record">Employment Record</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
-        <TabsContent value="employment-record" className="pt-4">
+        <div className="overflow-x-auto">
+          <TabsList variant="pill" className="w-max min-w-full justify-start sm:min-w-0">
+            <TabsTrigger value="employment-record">Employment Record</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="employment-record" className="pt-5">
           <EmploymentRecordTab
             staffId={staff.id}
             record={employmentRecord}
             salaryStructures={salaryStructures}
           />
         </TabsContent>
-        <TabsContent value="documents" className="pt-4">
+        <TabsContent value="documents" className="pt-5">
           <HrDocumentsTab staffId={staff.id} documents={documents} />
         </TabsContent>
       </Tabs>
@@ -69,7 +71,7 @@ export function StaffProfileTabs({
   return (
     <Tabs defaultValue={defaultTab ?? 'bio-data'}>
       <div className="overflow-x-auto">
-        <TabsList className="w-full sm:w-fit">
+        <TabsList variant="pill" className="w-max min-w-full justify-start sm:min-w-0">
           <TabsTrigger value="bio-data">Bio-data</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="teaching">Teaching</TabsTrigger>
@@ -78,13 +80,13 @@ export function StaffProfileTabs({
         </TabsList>
       </div>
 
-      <TabsContent value="bio-data" className="pt-4">
+      <TabsContent value="bio-data" className="pt-5">
         <BioDataCard staff={staff} isSelf={isSelf} />
       </TabsContent>
-      <TabsContent value="roles" className="pt-4">
+      <TabsContent value="roles" className="pt-5">
         <RoleAssignment staffId={staff.id} roles={staff.roles} />
       </TabsContent>
-      <TabsContent value="teaching" className="pt-4">
+      <TabsContent value="teaching" className="pt-5">
         <TeachingAssignmentsSection
           staffId={staff.id}
           assignments={assignments}
@@ -92,14 +94,14 @@ export function StaffProfileTabs({
           termOptions={termOptions}
         />
       </TabsContent>
-      <TabsContent value="employment-record" className="pt-4">
+      <TabsContent value="employment-record" className="pt-5">
         <EmploymentRecordTab
           staffId={staff.id}
           record={employmentRecord}
           salaryStructures={salaryStructures}
         />
       </TabsContent>
-      <TabsContent value="documents" className="pt-4">
+      <TabsContent value="documents" className="pt-5">
         <HrDocumentsTab staffId={staff.id} documents={documents} />
       </TabsContent>
     </Tabs>

@@ -68,7 +68,7 @@ export default async function StudentsDirectoryPage({
   const exportHref = `/api/students/export${exportQuery.size > 0 ? `?${exportQuery.toString()}` : ''}`;
 
   const actions = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="outline"
         render={<a href={exportHref} download />}

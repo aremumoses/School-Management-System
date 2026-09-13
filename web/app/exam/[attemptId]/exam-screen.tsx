@@ -348,7 +348,7 @@ export function ExamScreen({ initial }: { initial: AttemptDto }) {
                       i === current && 'ring-2 ring-primary ring-offset-1',
                       answered
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-background text-muted-foreground hover:bg-muted',
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted',
                     )}
                   >
                     {i + 1}

@@ -6,6 +6,7 @@ import { type ReactElement, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 const armSchema = z.object({
   name: z.string().min(1, 'Arm name is required').max(50),
@@ -70,15 +70,18 @@ export function ArmFormDialog({
       <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
           <div className="space-y-2">
-            <Label htmlFor="arm-name">Arm Name</Label>
+            <FormFieldLabel htmlFor="arm-name" required>
+              Arm Name
+            </FormFieldLabel>
             <Input
               id="arm-name"
               placeholder="Gold"
+              className="h-10"
               aria-invalid={Boolean(errors.name)}
               {...register('name')}
             />
@@ -90,7 +93,7 @@ export function ArmFormDialog({
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

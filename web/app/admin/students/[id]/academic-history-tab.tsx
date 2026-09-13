@@ -47,6 +47,9 @@ const STATUS_OPTIONS: EnrollmentStatus[] = [
   'GRADUATED',
 ];
 
+const headClass = 'h-12 font-semibold text-primary first:pl-5 last:pr-5 dark:text-heading';
+const cellClass = 'py-3 first:pl-5 last:pr-5';
+
 const enrollmentSchema = z.object({
   classId: z.string().min(1, 'Choose a class'),
   armId: z.string().min(1, 'Choose an arm'),
@@ -276,25 +279,27 @@ export function AcademicHistoryTab({
           No enrollment history yet.
         </p>
       ) : (
-        <div className="rounded-lg border border-border">
+        <div className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Session</TableHead>
-                <TableHead>Term</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Arm</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="bg-primary/5 hover:bg-primary/5">
+                <TableHead className={headClass}>Session</TableHead>
+                <TableHead className={headClass}>Term</TableHead>
+                <TableHead className={headClass}>Class</TableHead>
+                <TableHead className={headClass}>Arm</TableHead>
+                <TableHead className={headClass}>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {enrollments.map((enrollment) => (
-                <TableRow key={enrollment.id}>
-                  <TableCell>{enrollment.term.session.name}</TableCell>
-                  <TableCell>{enrollment.term.name} Term</TableCell>
-                  <TableCell>{enrollment.class.name}</TableCell>
-                  <TableCell>{enrollment.arm.name}</TableCell>
-                  <TableCell>
+                <TableRow key={enrollment.id} className="hover:bg-primary/5">
+                  <TableCell className={`${cellClass} font-medium text-heading`}>
+                    {enrollment.term.session.name}
+                  </TableCell>
+                  <TableCell className={cellClass}>{enrollment.term.name} Term</TableCell>
+                  <TableCell className={cellClass}>{enrollment.class.name}</TableCell>
+                  <TableCell className={cellClass}>{enrollment.arm.name}</TableCell>
+                  <TableCell className={cellClass}>
                     <StatusCell
                       studentId={studentId}
                       enrollmentId={enrollment.id}

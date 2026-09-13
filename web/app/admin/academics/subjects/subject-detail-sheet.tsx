@@ -1,13 +1,12 @@
 'use client';
 
-import { Loader2, Pencil } from 'lucide-react';
+import { Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -67,8 +66,8 @@ export function SubjectDetailSheet({
         }
       />
       <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{subject.name}</SheetTitle>
+        <SheetHeader className="border-b border-border pb-4">
+          <SheetTitle className="text-lg font-semibold text-heading">{subject.name}</SheetTitle>
           <SheetDescription>
             {subject.code ? `Code: ${subject.code}` : 'No code set'}
           </SheetDescription>
@@ -94,14 +93,20 @@ export function SubjectDetailSheet({
                 await deleteSubject(subject.id);
                 setOpen(false);
               }}
-              triggerRender={<Button variant="outline" size="sm" />}
+              triggerRender={
+                <Button variant="outline" size="sm">
+                  <Trash2 className="size-3.5 text-destructive" aria-hidden="true" />
+                  Delete
+                </Button>
+              }
             />
           </div>
 
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-foreground">
-              Offered at these class levels
-            </Label>
+            <div>
+              <p className="text-sm font-semibold text-heading">Offered at these class levels</p>
+              <p className="text-xs text-muted-foreground">Tick a class to offer this subject there.</p>
+            </div>
             <div className="space-y-2">
               {classes.map((klass) => {
                 const isMapped = mappedByClassId.has(klass.id);
@@ -110,7 +115,7 @@ export function SubjectDetailSheet({
                   <label
                     key={klass.id}
                     htmlFor={`class-${klass.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm hover:bg-muted/40"
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3.5 text-sm transition-colors hover:bg-primary/5 has-data-checked:border-primary/40 has-data-checked:bg-primary/5"
                   >
                     <Checkbox
                       id={`class-${klass.id}`}
@@ -118,7 +123,7 @@ export function SubjectDetailSheet({
                       disabled={isPending}
                       onCheckedChange={(checked) => toggleClass(klass.id, checked === true)}
                     />
-                    <span className="flex-1 font-medium text-foreground">{klass.name}</span>
+                    <span className="flex-1 font-semibold text-heading">{klass.name}</span>
                     {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
                     {isMapped && !isPending && <Badge variant="success">Offered</Badge>}
                   </label>
