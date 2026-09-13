@@ -61,4 +61,8 @@ COPY --from=build /app/tsconfig.json ./tsconfig.json
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "dist/main.js"]
+# The entrypoint is dist/src/main.js, not dist/main.js: prisma.config.ts and
+# prisma/seed.ts sit outside src/ and are compiled too, so tsc roots the output
+# at api/ and mirrors src/ under dist/. Pointing at dist/main.js crashed every
+# container on boot with "Cannot find module" (exit 1).
+CMD ["node", "dist/src/main.js"]
