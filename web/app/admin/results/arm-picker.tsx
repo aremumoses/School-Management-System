@@ -27,7 +27,7 @@ export function ArmPicker({
       onValueChange={handleChange}
       items={options.map((o) => ({ value: o.id, label: o.label }))}
     >
-      <SelectTrigger className="w-full sm:w-72" aria-label="Choose class">
+      <SelectTrigger className="w-full data-[size=default]:h-10 sm:w-60" aria-label="Choose class">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

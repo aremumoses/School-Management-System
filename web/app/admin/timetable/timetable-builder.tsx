@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
 import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
@@ -130,7 +130,9 @@ export function TimetableBuilder({
 
   const cellButton = (day: number, period: PeriodDto) => {
     const entry = cellEntry(day, period.id);
-    const details = entry ? [entry.teacherName, entry.room].filter(Boolean).join(' · ') : '';
+    const details = entry
+      ? [entry.teacherName, entry.room].filter((part): part is string => Boolean(part))
+      : [];
     return (
       <button
         type="button"
@@ -152,8 +154,17 @@ export function TimetableBuilder({
             <span className="line-clamp-2 text-[13px] leading-snug font-semibold text-heading">
               {entry.subjectName}
             </span>
-            {details && (
-              <span className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{details}</span>
+            {details.length > 0 && (
+              <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                {/* Each part stays whole, so a narrow cell wraps "Room 4"
+                    onto the next line rather than splitting it. */}
+                {details.map((part, index) => (
+                  <Fragment key={index}>
+                    {index > 0 && ' · '}
+                    <span className="whitespace-nowrap">{part}</span>
+                  </Fragment>
+                ))}
+              </span>
             )}
           </>
         ) : (

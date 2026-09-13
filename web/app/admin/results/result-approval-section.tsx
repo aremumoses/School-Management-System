@@ -1,9 +1,10 @@
 'use client';
 
-import { Download, Loader2, Sparkles } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, Sparkles, Undo2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BroadsheetTable } from '@/components/results/broadsheet-table';
 import { Textarea } from '@/components/ui/textarea';
 import { approveAndPublishResults, returnResults, setPrincipalComment, suggestComment } from '@/lib/actions/results';
@@ -79,16 +79,28 @@ export function ResultApprovalSection({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <CardTitle>Broadsheet</CardTitle>
-          <Badge variant={RESULT_STAGE_BADGE[status.stage]}>{RESULT_STAGE_LABELS[status.stage]}</Badge>
+    <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+      <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <FileSpreadsheet className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold text-heading">Broadsheet</h2>
+              <Badge variant={RESULT_STAGE_BADGE[status.stage]}>{RESULT_STAGE_LABELS[status.stage]}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {rows.length === 0
+                ? 'No scores submitted yet'
+                : `${rows.length} student${rows.length === 1 ? '' : 's'}`}
+            </p>
+          </div>
         </div>
-        <CardAction className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            size="sm"
             render={
               <a href={`/api/results/${armId}/${termId}/broadsheet/export`} download />
             }
@@ -96,97 +108,117 @@ export function ResultApprovalSection({
             <Download className="size-4" aria-hidden="true" />
             Export Excel
           </Button>
-        {canAct && (<>
-            <AlertDialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
-              <AlertDialogTrigger render={<Button variant="outline" />}>
-                Return for Correction
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Return for correction?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Explain what needs fixing — this is shown to the Exam Officer and class
-                    teacher.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Textarea
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                  placeholder="e.g. Please double-check Mathematics scores for JSS1 Gold."
-                  className="min-h-20"
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction variant="destructive" disabled={isReturning} onClick={handleReturn}>
-                    {isReturning ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                        Returning…
-                      </>
-                    ) : (
-                      'Return'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {canAct && (
+            <>
+              <AlertDialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+                <AlertDialogTrigger render={<Button variant="outline" />}>
+                  <Undo2 className="size-4" aria-hidden="true" />
+                  Return for Correction
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-heading">Return for correction?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Explain what needs fixing — this is shown to the Exam Officer and class
+                      teacher.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-2">
+                    <FormFieldLabel htmlFor="results-return-reason" required>
+                      Reason
+                    </FormFieldLabel>
+                    <Textarea
+                      id="results-return-reason"
+                      value={returnReason}
+                      onChange={(e) => setReturnReason(e.target.value)}
+                      placeholder="e.g. Please double-check Mathematics scores for JSS1 Gold."
+                      className="min-h-24"
+                    />
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" disabled={isReturning} onClick={handleReturn}>
+                      {isReturning ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                          Returning…
+                        </>
+                      ) : (
+                        'Return'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
-            <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
-              <AlertDialogTrigger render={<Button />}>Approve &amp; Publish</AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Approve and publish results?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This makes report cards visible to students and parents immediately, and
-                    generates a PDF report card for every student in the class.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction disabled={isPublishing} onClick={handleApproveAndPublish}>
-                    {isPublishing ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                        Publishing…
-                      </>
-                    ) : (
-                      'Approve & Publish'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>)}
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {status.stage === 'RETURNED' && status.returnReason && (
-          <div className="rounded-lg border border-error-soft bg-error-soft px-4 py-3 text-sm text-error-soft-foreground">
-            <strong>Returned for correction:</strong> {status.returnReason}
+              <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+                <AlertDialogTrigger render={<Button />}>Approve &amp; Publish</AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-heading">Approve and publish results?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This makes report cards visible to students and parents immediately, and
+                      generates a PDF report card for every student in the class.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction disabled={isPublishing} onClick={handleApproveAndPublish}>
+                      {isPublishing ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                          Publishing…
+                        </>
+                      ) : (
+                        'Approve & Publish'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
+      </div>
+
+      {status.stage === 'RETURNED' && status.returnReason && (
+        <div className="px-5 pt-5 sm:px-6">
+          <div className="flex items-start gap-3 rounded-xl border border-error-soft bg-error-soft px-4 py-3 text-sm text-error-soft-foreground">
+            <Undo2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p>
+              <strong>Returned for correction:</strong> {status.returnReason}
+            </p>
           </div>
-        )}
-        {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+        </div>
+      )}
+
+      {rows.length === 0 ? (
+        <div className="p-5 sm:p-6">
+          <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
             No scores have been submitted for this class yet.
           </p>
-        ) : (
-          <BroadsheetTable
-            rows={rows}
-            extraColumnHeader="Principal's Comment"
-            renderExtraColumn={(row) => (
-              <PrincipalCommentCell
-                key={row.studentId}
-                armId={armId}
-                termId={termId}
-                studentId={row.studentId}
-                initialComment={row.principalComment}
-                overallAverage={row.overallAverage}
-              />
-            )}
-          />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : (
+        <BroadsheetTable
+          rows={rows}
+          className={cn(
+            'rounded-none border-0',
+            status.stage === 'RETURNED' && status.returnReason && 'mt-5 border-t',
+          )}
+          extraColumnHeader="Principal's Comment"
+          renderExtraColumn={(row) => (
+            <PrincipalCommentCell
+              key={row.studentId}
+              armId={armId}
+              termId={termId}
+              studentId={row.studentId}
+              initialComment={row.principalComment}
+              overallAverage={row.overallAverage}
+            />
+          )}
+        />
+      )}
+    </section>
   );
 }
 
@@ -239,7 +271,7 @@ function PrincipalCommentCell({
   }
 
   return (
-    <div className="flex w-64 flex-col gap-1.5">
+    <div className="flex w-72 flex-col gap-2">
       {isDirty && (
         <Badge variant="warning" className="w-fit font-normal">
           Draft — not yet saved
@@ -248,7 +280,8 @@ function PrincipalCommentCell({
       <Textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className={cn('min-h-16 text-xs', isDirty && 'border-warning ring-1 ring-warning/30')}
+        aria-label="Principal's comment"
+        className={cn('min-h-16 text-sm whitespace-normal', isDirty && 'border-warning ring-1 ring-warning/30')}
         placeholder="Principal's comment…"
       />
       <div className="flex flex-wrap items-center justify-between gap-2">

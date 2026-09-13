@@ -279,9 +279,11 @@ export default async function AdminAttendancePage({
                   <TableRow key={entry.studentId} className="hover:bg-primary/5">
                     <TableCell className="py-3 pl-5 sm:pl-6">
                       <div className="flex items-center gap-3">
+                        {/* No room for the initials circle beside a long name
+                            and the status badge at phone width. */}
                         <span
                           aria-hidden="true"
-                          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary dark:text-heading"
+                          className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex dark:text-heading"
                         >
                           {initials(entry.firstName, entry.lastName)}
                         </span>

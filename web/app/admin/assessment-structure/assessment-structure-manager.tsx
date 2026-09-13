@@ -3,15 +3,23 @@
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   createAssessmentComponent,
   deleteAssessmentComponent,
   updateAssessmentComponent,
 } from '@/lib/actions/admin';
 import type { AssessmentComponentDto } from '@/lib/types/results';
+import { cn } from '@/lib/utils';
+
+// Reads as plain text until hovered or focused, then shows its edit frame.
+const INLINE_INPUT =
+  'h-9 rounded-md border border-transparent bg-transparent px-2 text-sm text-heading outline-none transition-colors hover:border-border focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-60';
+
+const HEAD = 'h-12 text-left font-semibold whitespace-nowrap text-primary dark:text-heading';
 
 export function AssessmentStructureManager({
   termId,
@@ -62,20 +70,24 @@ export function AssessmentStructureManager({
   const totalWeight = components.reduce((s, c) => s + c.weight, 0);
 
   return (
-    <div className="space-y-4">
+    <div>
       {components.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No assessment components defined for this term yet. Add one below.
-        </p>
+        <div className="px-5 pt-5 sm:px-6">
+          <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+            No assessment components defined for this term yet. Add one below.
+          </p>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Max Score</th>
-                <th className="px-3 py-2 font-medium">Weight</th>
-                <th className="px-3 py-2 font-medium" aria-label="Actions" />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[22rem] text-sm">
+            <thead>
+              <tr className="border-b border-border bg-primary/5">
+                <th scope="col" className={cn(HEAD, 'px-5 sm:pl-6')}>Name</th>
+                <th scope="col" className={cn(HEAD, 'w-28 px-3')}>Max Score</th>
+                <th scope="col" className={cn(HEAD, 'w-32 px-3')}>Weight</th>
+                <th scope="col" className="w-14 pr-5 sm:pr-6">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -87,76 +99,81 @@ export function AssessmentStructureManager({
                   isPending={isPending}
                 />
               ))}
-              <tr className="bg-muted/30 font-medium">
-                <td className="px-3 py-2 text-xs text-muted-foreground" colSpan={2}>
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-primary/5">
+                <td colSpan={2} className="px-5 py-3 font-semibold text-heading sm:pl-6">
                   Total weight
                 </td>
-                <td className="px-3 py-2 tabular-nums">
-                  <span className={totalWeight !== 100 ? 'text-warning-soft-foreground' : ''}>
-                    {totalWeight}%
+                <td colSpan={2} className="px-3 py-3 pr-5 sm:pr-6">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-heading tabular-nums">{totalWeight}%</span>
+                    {totalWeight !== 100 && (
+                      <Badge variant="warning">should sum to 100%</Badge>
+                    )}
                   </span>
-                  {totalWeight !== 100 && (
-                    <span className="ml-2 text-xs text-warning-soft-foreground">
-                      (should sum to 100%)
-                    </span>
-                  )}
                 </td>
-                <td />
               </tr>
-            </tbody>
+            </tfoot>
           </table>
         </div>
       )}
 
       {/* Add new component */}
-      <div className="rounded-lg border border-dashed border-border p-4">
-        <p className="mb-3 text-sm font-medium text-foreground">Add Component</p>
-        <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-36 space-y-1">
-            <Label htmlFor="new-name" className="text-xs">Name (e.g. CA1, Exam)</Label>
+      <div className="border-t border-border px-5 py-5 sm:px-6">
+        <h3 className="mb-4 text-base font-semibold text-heading">Add Component</h3>
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem_8rem_auto] sm:items-end">
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="new-name" required>
+              Name
+            </FormFieldLabel>
             <Input
               id="new-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. CA1"
-              className="h-8 text-sm"
+              placeholder="e.g. CA1 or Exam"
+              className="h-10"
             />
           </div>
-          <div className="w-24 space-y-1">
-            <Label htmlFor="new-max" className="text-xs">Max Score</Label>
-            <Input
-              id="new-max"
-              type="number"
-              min="1"
-              value={newMax}
-              onChange={(e) => setNewMax(e.target.value)}
-              placeholder="30"
-              className="h-8 text-sm"
-            />
+          <div className="grid grid-cols-2 gap-4 sm:contents">
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="new-max" required>
+                Max score
+              </FormFieldLabel>
+              <Input
+                id="new-max"
+                type="number"
+                min="1"
+                value={newMax}
+                onChange={(e) => setNewMax(e.target.value)}
+                placeholder="30"
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="new-weight" required>
+                Weight %
+              </FormFieldLabel>
+              <Input
+                id="new-weight"
+                type="number"
+                min="1"
+                max="100"
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="30"
+                className="h-10"
+              />
+            </div>
           </div>
-          <div className="w-24 space-y-1">
-            <Label htmlFor="new-weight" className="text-xs">Weight %</Label>
-            <Input
-              id="new-weight"
-              type="number"
-              min="1"
-              max="100"
-              value={newWeight}
-              onChange={(e) => setNewWeight(e.target.value)}
-              placeholder="30"
-              className="h-8 text-sm"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button size="sm" onClick={handleAdd} disabled={isPending}>
-              {isPending ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-              ) : (
-                <Plus className="size-3.5" aria-hidden="true" />
-              )}
-              Add
-            </Button>
-          </div>
+          <Button onClick={handleAdd} disabled={isPending} className="h-10 w-full px-4 sm:w-auto">
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Plus className="size-4" aria-hidden="true" />
+            )}
+            Add
+          </Button>
         </div>
       </div>
     </div>
@@ -198,53 +215,59 @@ function ComponentRow({
   }
 
   return (
-    <tr className="hover:bg-muted/30">
-      <td className="px-3 py-1.5">
+    <tr className="transition-colors hover:bg-primary/5">
+      {/* Cell padding minus the input's own 1px border and 8px padding, so
+          the values line up with their column headings. */}
+      <td className="py-2 pr-3 pl-3 sm:pl-4">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={(e) => handleBlur('name', e.target.value)}
-          className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-sm focus:border-border focus:outline-none"
+          aria-label="Component name"
+          className={cn(INLINE_INPUT, 'w-full min-w-24 font-semibold')}
           disabled={rowPending || isPending}
         />
       </td>
-      <td className="px-3 py-1.5">
+      <td className="px-1 py-2">
         <input
           type="number"
           value={maxScore}
           onChange={(e) => setMaxScore(e.target.value)}
           onBlur={(e) => handleBlur('maxScore', e.target.value)}
-          className="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm tabular-nums focus:border-border focus:outline-none"
+          aria-label={`${component.name} max score`}
+          className={cn(INLINE_INPUT, 'w-20 tabular-nums')}
           disabled={rowPending || isPending}
           min="1"
         />
       </td>
-      <td className="px-3 py-1.5">
-        <input
-          type="number"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-          onBlur={(e) => handleBlur('weight', e.target.value)}
-          className="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm tabular-nums focus:border-border focus:outline-none"
-          disabled={rowPending || isPending}
-          min="1"
-          max="100"
-        />
-        <span className="ml-0.5 text-xs text-muted-foreground">%</span>
+      <td className="px-1 py-2">
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <input
+            type="number"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            onBlur={(e) => handleBlur('weight', e.target.value)}
+            aria-label={`${component.name} weight percentage`}
+            className={cn(INLINE_INPUT, 'w-20 tabular-nums')}
+            disabled={rowPending || isPending}
+            min="1"
+            max="100"
+          />
+          <span className="text-sm text-muted-foreground">%</span>
+        </span>
       </td>
-      <td className="px-3 py-1.5">
+      <td className="py-2 pr-3 text-right sm:pr-4">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon-sm"
           onClick={onDelete}
           disabled={rowPending || isPending}
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
           aria-label={`Delete ${component.name}`}
         >
           {rowPending ? (
-            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
-            <Trash2 className="size-3" aria-hidden="true" />
+            <Trash2 className="size-4 text-destructive" aria-hidden="true" />
           )}
         </Button>
       </td>

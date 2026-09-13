@@ -1,9 +1,10 @@
+import { Info, SlidersHorizontal } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAssessmentComponents } from '@/lib/actions/results';
 import { apiFetch } from '@/lib/api';
 import type { AcademicSessionDto, TermDto } from '@/lib/types/academic';
 import { AssessmentStructureManager } from './assessment-structure-manager';
+import { TermPillNav } from './term-pill-nav';
 
 export default async function AssessmentStructurePage({
   searchParams,
@@ -29,7 +30,7 @@ export default async function AssessmentStructurePage({
     return (
       <div className="space-y-6">
         <PageHeader title="Assessment Structure" />
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-xl bg-card px-6 py-10 text-center text-sm text-muted-foreground dark:ring-1 dark:ring-foreground/10">
           Set up an academic session and term first.
         </p>
       </div>
@@ -46,38 +47,29 @@ export default async function AssessmentStructurePage({
         description="Define the CA and exam component weights for each term. These apply school-wide unless overridden per subject."
       />
 
-      {/* Term picker */}
-      <div className="flex flex-wrap gap-2">
-        {allTerms.map((term) => (
-          <a
-            key={term.id}
-            href={`/admin/assessment-structure?termId=${term.id}`}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              term.id === selectedTermId
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            {term.sessionName} — {term.name}
-          </a>
-        ))}
-      </div>
+      <TermPillNav
+        terms={allTerms}
+        selectedTermId={selectedTermId}
+        basePath="/admin/assessment-structure"
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Components — {selectedTerm?.sessionName} {selectedTerm?.name} Term
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AssessmentStructureManager
-            termId={selectedTermId}
-            initialComponents={components}
-          />
-        </CardContent>
-      </Card>
+      <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+        <div className="flex items-center gap-4 border-b border-border px-5 py-4 sm:px-6 sm:py-5">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <SlidersHorizontal className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-heading">Components</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedTerm?.sessionName} {selectedTerm?.name} Term · select a value to edit it
+            </p>
+          </div>
+        </div>
+        <AssessmentStructureManager termId={selectedTermId} initialComponents={components} />
+      </section>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="flex items-start gap-2 text-sm text-muted-foreground">
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         Changes take effect immediately. Teachers cannot submit scores until the components for
         their term are set up. Existing scores are not affected by weight changes.
       </p>

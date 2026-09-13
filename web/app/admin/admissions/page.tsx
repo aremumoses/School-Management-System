@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { CheckCircle, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable } from '@/components/dashboard/data-table';
@@ -24,12 +24,20 @@ const columns: ColumnDef<ApplicantDto, unknown>[] = [
     header: 'Applicant',
     accessorFn: (r) => `${r.firstName} ${r.lastName}`,
     cell: ({ row }) => (
-      <Link
-        href={`/admin/admissions/${row.original.id}`}
-        className="font-medium text-foreground hover:text-primary hover:underline"
-      >
-        {row.original.firstName} {row.original.lastName}
-      </Link>
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary md:flex dark:text-heading"
+        >
+          {`${row.original.firstName[0] ?? ''}${row.original.lastName[0] ?? ''}`.toUpperCase()}
+        </span>
+        <Link
+          href={`/admin/admissions/${row.original.id}`}
+          className="font-semibold text-heading hover:text-primary hover:underline dark:hover:text-foreground"
+        >
+          {row.original.firstName} {row.original.lastName}
+        </Link>
+      </div>
     ),
   },
   {
@@ -37,7 +45,7 @@ const columns: ColumnDef<ApplicantDto, unknown>[] = [
     header: 'Class',
     accessorFn: (r) => r.intendedClassLevel,
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
+      <span className="inline-flex rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary dark:text-foreground">
         {row.original.intendedClassLevel}
       </span>
     ),
@@ -79,7 +87,7 @@ export default async function AdminAdmissionsPage() {
         title="Admissions"
         description="Review and process admission applications."
         action={
-          <Button size="sm" render={<Link href="/apply" target="_blank" />}>
+          <Button render={<Link href="/apply" target="_blank" />}>
             <UserPlus className="size-4" aria-hidden="true" />
             View Application Form
           </Button>
@@ -87,15 +95,22 @@ export default async function AdminAdmissionsPage() {
       />
 
       {applicants.length === 0 ? (
-        <Empty className="border border-dashed border-border">
+        <Empty className="rounded-xl bg-card py-12 dark:ring-1 dark:ring-foreground/10">
           <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CheckCircle />
+            <EmptyMedia
+              variant="icon"
+              className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+            >
+              <UserPlus />
             </EmptyMedia>
-            <EmptyTitle>No applications yet</EmptyTitle>
+            <EmptyTitle className="text-base font-semibold text-heading">No applications yet</EmptyTitle>
             <EmptyDescription>
               Share the{' '}
-              <Link href="/apply" target="_blank" className="text-primary hover:underline">
+              <Link
+                href="/apply"
+                target="_blank"
+                className="font-medium text-primary hover:underline dark:text-foreground"
+              >
                 application form link
               </Link>{' '}
               with prospective families.

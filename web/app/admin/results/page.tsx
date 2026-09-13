@@ -26,12 +26,15 @@ export default async function AdminResultsPage({
     return (
       <div className="space-y-6">
         <PageHeader title="Result Approvals" description="Review, approve, and publish term results." />
-        <Empty className="border border-dashed border-border">
+        <Empty className="rounded-xl bg-card py-12 dark:ring-1 dark:ring-foreground/10">
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia
+              variant="icon"
+              className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+            >
               <ClipboardX />
             </EmptyMedia>
-            <EmptyTitle>No classes set up yet</EmptyTitle>
+            <EmptyTitle className="text-base font-semibold text-heading">No classes set up yet</EmptyTitle>
             <EmptyDescription>Create classes and arms in Academic Setup first.</EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -52,8 +55,8 @@ export default async function AdminResultsPage({
       <PageHeader
         title="Result Approvals"
         description={`${selectedArm.label} — ${currentTerm.name} term`}
+        action={armOptions.length > 1 ? <ArmPicker options={armOptions} selectedId={armId} /> : undefined}
       />
-      {armOptions.length > 1 && <ArmPicker options={armOptions} selectedId={armId} />}
       <ResultApprovalSection armId={armId} termId={currentTerm.id} status={status} rows={broadsheet.rows} />
     </div>
   );

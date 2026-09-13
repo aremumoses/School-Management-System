@@ -2,13 +2,12 @@
 
 import Script from 'next/script';
 import Link from 'next/link';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle, Loader2, School } from 'lucide-react';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -19,6 +18,7 @@ import {
 import { Stepper } from '@/components/dashboard/stepper';
 import { applyForAdmission, getApplicantStatus, startFeeCheckout } from '@/lib/actions/admissions';
 import type { ApplicantDto, ApplicantStatusDto } from '@/lib/types/admissions';
+import { cn } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -32,6 +32,11 @@ const CLASS_LEVELS = [
   'JSS 1', 'JSS 2', 'JSS 3',
   'SS 1', 'SS 2', 'SS 3',
 ];
+
+// Sized like the sign-in form. Mobile keeps the base 16px text: anything
+// smaller makes iOS zoom on focus.
+const INPUT_CLASS = 'h-12 px-4 md:text-[0.9rem]';
+const SELECT_CLASS = 'w-full px-4 data-[size=default]:h-12 md:text-[0.9rem]';
 
 type Phase = 'form' | 'submitted' | 'fee-paying' | 'fee-paid';
 
@@ -82,6 +87,27 @@ function validateStep(form: FormData, step: number): string | null {
     if (!form.intendedClassLevel) return 'Please select the class you are applying for.';
   }
   return null;
+}
+
+function Field({
+  id,
+  label,
+  required,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <FormFieldLabel htmlFor={id} required={required}>
+        {label}
+      </FormFieldLabel>
+      {children}
+    </div>
+  );
 }
 
 export function ApplyForm({ schoolName }: { schoolName: string }) {
@@ -177,141 +203,146 @@ export function ApplyForm({ schoolName }: { schoolName: string }) {
     return (
       <>
         <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            {phase === 'fee-paid' ? (
-              <CheckCircle
-                className="mx-auto size-12 text-success"
-                aria-hidden="true"
-              />
-            ) : (
-              <School className="mx-auto size-12 text-primary" aria-hidden="true" />
+        <div className="text-center">
+          <span
+            className={cn(
+              'mx-auto flex size-16 items-center justify-center rounded-full',
+              phase === 'fee-paid'
+                ? 'bg-success-soft text-success-soft-foreground'
+                : 'bg-primary/10 text-primary',
             )}
-            <CardTitle className="mt-3 text-2xl">
-              {phase === 'fee-paid' ? 'Application submitted!' : 'Application received'}
-            </CardTitle>
-            <CardDescription>
-              {phase === 'fee-paid'
-                ? 'Your application fee has been paid. The school will be in touch soon.'
-                : 'Save your reference number below — you will need it to track your application status.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Application reference
-              </p>
-              <p className="break-all font-mono text-sm font-semibold text-foreground">
-                {displayStatus?.id}
+          >
+            {phase === 'fee-paid' ? (
+              <CheckCircle className="size-8" aria-hidden="true" />
+            ) : (
+              <School className="size-8" aria-hidden="true" />
+            )}
+          </span>
+          <h1 className="mt-5 text-2xl font-semibold text-heading">
+            {phase === 'fee-paid' ? 'Application submitted!' : 'Application received'}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {phase === 'fee-paid'
+              ? 'Your application fee has been paid. The school will be in touch soon.'
+              : 'Save your reference number below — you will need it to track your application status.'}
+          </p>
+        </div>
+
+        <div className="mt-8 space-y-5">
+          <div className="rounded-xl bg-primary/5 p-4">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Application reference</p>
+            <p className="font-mono text-sm font-semibold break-all text-heading">
+              {displayStatus?.id}
+            </p>
+          </div>
+
+          {displayStatus?.offerLetterUrl && (
+            <Button
+              size="lg"
+              className="h-12 w-full text-base"
+              render={
+                <a
+                  href={displayStatus.offerLetterUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
+              Download Offer Letter
+            </Button>
+          )}
+
+          {phase !== 'fee-paid' && (
+            <div className="space-y-2">
+              {feePayingState === 'waiting' ? (
+                <div className="flex h-12 items-center justify-center gap-2 rounded-md bg-primary/5 px-4">
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+                  <span className="text-sm text-muted-foreground">
+                    Waiting for payment confirmation…
+                  </span>
+                </div>
+              ) : (
+                <Button
+                  size="lg"
+                  className="h-12 w-full text-base"
+                  disabled={feePayingState === 'loading'}
+                  onClick={() => void payFee()}
+                >
+                  {feePayingState === 'loading' ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      Opening payment…
+                    </>
+                  ) : (
+                    'Pay Application Fee'
+                  )}
+                </Button>
+              )}
+              <p className="text-center text-xs text-muted-foreground">
+                Secure payment via Paystack
               </p>
             </div>
+          )}
 
-            {displayStatus?.offerLetterUrl && (
-              <Button
-                className="w-full"
-                render={
-                  <a
-                    href={displayStatus.offerLetterUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  />
-                }
-              >
-                Download Offer Letter
-              </Button>
-            )}
-
-            {phase !== 'fee-paid' && (
-              <div className="space-y-2">
-                {feePayingState === 'waiting' ? (
-                  <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-3">
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
-                    <span className="text-sm text-muted-foreground">
-                      Waiting for payment confirmation…
-                    </span>
-                  </div>
-                ) : (
-                  <Button
-                    className="w-full"
-                    disabled={feePayingState === 'loading'}
-                    onClick={() => void payFee()}
-                  >
-                    {feePayingState === 'loading' ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                        Opening payment…
-                      </>
-                    ) : (
-                      'Pay Application Fee'
-                    )}
-                  </Button>
-                )}
-                <p className="text-center text-xs text-muted-foreground">
-                  Secure payment via Paystack
-                </p>
-              </div>
-            )}
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have a portal account?{' '}
-              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have a portal account?{' '}
+            <Link
+              href="/login"
+              className="font-medium text-primary underline-offset-4 hover:underline dark:text-foreground"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </>
     );
   }
 
   // ─── Multi-step form ────────────────────────────────────────────────────
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader>
-        <CardTitle className="text-center text-2xl">Admission Application</CardTitle>
-        <CardDescription className="text-center">
-          Apply for a place at {schoolName}
-        </CardDescription>
-        <div className="pt-4">
-          <Stepper steps={STEPS} currentStep={step} />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <div>
+      <div className="mb-8 text-center">
+        <h1 className="text-2xl font-semibold text-heading">Admission Application</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Apply for a place at {schoolName}</p>
+      </div>
+
+      <Stepper steps={STEPS} currentStep={step} />
+
+      <div className="mt-8 space-y-5">
         {step === 1 && (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name</Label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="firstName" label="First name" required>
                 <Input
                   id="firstName"
                   value={form.firstName}
                   onChange={(e) => set('firstName', e.target.value)}
                   placeholder="Emeka"
+                  className={INPUT_CLASS}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name</Label>
+              </Field>
+              <Field id="lastName" label="Last name" required>
                 <Input
                   id="lastName"
                   value={form.lastName}
                   onChange={(e) => set('lastName', e.target.value)}
                   placeholder="Okafor"
+                  className={INPUT_CLASS}
                 />
-              </div>
+              </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="dateOfBirth">Date of birth</Label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="dateOfBirth" label="Date of birth" required>
                 <Input
                   id="dateOfBirth"
                   type="date"
                   value={form.dateOfBirth}
                   max={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => set('dateOfBirth', e.target.value)}
+                  className={INPUT_CLASS}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="gender">Gender</Label>
+              </Field>
+              <Field id="gender" label="Gender" required>
                 <Select
                   value={form.gender}
                   onValueChange={(v) => v && set('gender', v)}
@@ -320,7 +351,7 @@ export function ApplyForm({ schoolName }: { schoolName: string }) {
                     { value: 'FEMALE', label: 'Female' },
                   ]}
                 >
-                  <SelectTrigger id="gender" className="w-full">
+                  <SelectTrigger id="gender" className={SELECT_CLASS}>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,78 +359,77 @@ export function ApplyForm({ schoolName }: { schoolName: string }) {
                     <SelectItem value="FEMALE">Female</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="address">Home address (optional)</Label>
+            <Field id="address" label="Home address (optional)">
               <Input
                 id="address"
                 value={form.address}
                 onChange={(e) => set('address', e.target.value)}
                 placeholder="12 Ikeja Road, Lagos"
+                className={INPUT_CLASS}
               />
-            </div>
+            </Field>
           </>
         )}
 
         {step === 2 && (
           <>
-            <p className="text-sm text-muted-foreground">
+            <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               The guardian will receive login credentials and notifications about this application.
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="gFirstName">Guardian first name</Label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field id="gFirstName" label="Guardian first name" required>
                 <Input
                   id="gFirstName"
                   value={form.guardianFirstName}
                   onChange={(e) => set('guardianFirstName', e.target.value)}
                   placeholder="Chukwu"
+                  className={INPUT_CLASS}
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="gLastName">Guardian last name</Label>
+              </Field>
+              <Field id="gLastName" label="Guardian last name" required>
                 <Input
                   id="gLastName"
                   value={form.guardianLastName}
                   onChange={(e) => set('guardianLastName', e.target.value)}
                   placeholder="Okafor"
+                  className={INPUT_CLASS}
                 />
-              </div>
+              </Field>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="gEmail">Guardian email</Label>
+            <Field id="gEmail" label="Guardian email" required>
               <Input
                 id="gEmail"
                 type="email"
                 value={form.guardianEmail}
                 onChange={(e) => set('guardianEmail', e.target.value)}
                 placeholder="guardian@example.com"
+                className={INPUT_CLASS}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="gPhone">Guardian phone</Label>
+            </Field>
+            <Field id="gPhone" label="Guardian phone" required>
               <Input
                 id="gPhone"
                 type="tel"
                 value={form.guardianPhone}
                 onChange={(e) => set('guardianPhone', e.target.value)}
                 placeholder="+2348012345678"
+                className={INPUT_CLASS}
               />
-            </div>
+            </Field>
           </>
         )}
 
         {step === 3 && (
           <>
-            <div className="space-y-1.5">
-              <Label htmlFor="classLevel">Class applying for</Label>
+            <Field id="classLevel" label="Class applying for" required>
               <Select
                 value={form.intendedClassLevel}
                 onValueChange={(v) => v && set('intendedClassLevel', v)}
                 items={CLASS_LEVELS.map((c) => ({ value: c, label: c }))}
               >
-                <SelectTrigger id="classLevel" className="w-full">
+                <SelectTrigger id="classLevel" className={SELECT_CLASS}>
                   <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -410,55 +440,68 @@ export function ApplyForm({ schoolName }: { schoolName: string }) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
 
-            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Review before submitting</p>
-              <p className="mt-1">
-                Applicant: <strong>{form.firstName} {form.lastName}</strong>
-              </p>
-              <p>
-                Guardian: <strong>{form.guardianFirstName} {form.guardianLastName}</strong>{' '}
-                ({form.guardianEmail})
-              </p>
+            <div className="rounded-xl bg-primary/5 p-4 text-sm">
+              <p className="font-semibold text-heading">Review before submitting</p>
+              <dl className="mt-3 space-y-2">
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
+                  <dt className="text-muted-foreground">Applicant</dt>
+                  <dd className="font-semibold text-heading">
+                    {form.firstName} {form.lastName}
+                  </dd>
+                </div>
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
+                  <dt className="text-muted-foreground">Guardian</dt>
+                  <dd className="min-w-0 text-right">
+                    <span className="block font-semibold text-heading">
+                      {form.guardianFirstName} {form.guardianLastName}
+                    </span>
+                    <span className="block break-all text-muted-foreground">{form.guardianEmail}</span>
+                  </dd>
+                </div>
+              </dl>
             </div>
           </>
         )}
+      </div>
 
-        <div className="flex gap-2">
-          {step > 1 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setStep((s) => s - 1)}
-              disabled={submitting}
-            >
-              Back
-            </Button>
-          )}
-          {step < 3 ? (
-            <Button type="button" className="flex-1" onClick={next}>
-              Continue
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={submitting}
-              onClick={() => void submit()}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  Submitting…
-                </>
-              ) : (
-                'Submit Application'
-              )}
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      <div className="mt-8 flex gap-3">
+        {step > 1 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="h-12 px-6 text-base"
+            onClick={() => setStep((s) => s - 1)}
+            disabled={submitting}
+          >
+            Back
+          </Button>
+        )}
+        {step < 3 ? (
+          <Button type="button" size="lg" className="h-12 flex-1 text-base" onClick={next}>
+            Continue
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="lg"
+            className="h-12 flex-1 text-base"
+            disabled={submitting}
+            onClick={() => void submit()}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                Submitting…
+              </>
+            ) : (
+              'Submit Application'
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }

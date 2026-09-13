@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -14,7 +15,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { reviewApplicant } from '@/lib/actions/admissions';
 import type { ApplicantStatus } from '@/lib/types/admissions';
@@ -87,59 +87,50 @@ export function ReviewActions({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex shrink-0 flex-wrap gap-2">
       {currentStatus === 'SUBMITTED' && (
         <Button
           type="button"
           variant="outline"
-          size="sm"
           disabled={isPending}
           onClick={() => void moveToReview()}
         >
           {isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : 'Mark Under Review'}
         </Button>
       )}
-      <Button
-        type="button"
-        size="sm"
-        disabled={isPending}
-        onClick={() => void approve()}
-      >
+      <Button type="button" disabled={isPending} onClick={() => void approve()}>
         {isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : 'Approve'}
       </Button>
 
       <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <AlertDialogTrigger
-          render={
-            <Button type="button" variant="destructive" size="sm" disabled={isPending} />
-          }
+          render={<Button type="button" variant="destructive" disabled={isPending} />}
         >
           Reject
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject this application?</AlertDialogTitle>
+            <AlertDialogTitle className="text-heading">Reject this application?</AlertDialogTitle>
             <AlertDialogDescription>
               The applicant will not receive an offer letter. This action records the
               reason for audit purposes.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-1.5">
-            <Label htmlFor="reject-notes">Reason (required)</Label>
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="reject-notes" required>
+              Reason
+            </FormFieldLabel>
             <Textarea
               id="reject-notes"
               rows={3}
               value={rejectNotes}
               onChange={(e) => setRejectNotes(e.target.value)}
               placeholder="e.g. Age does not meet the minimum requirement for the applied class."
+              className="min-h-24"
             />
           </div>
           <AlertDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setRejectOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setRejectOpen(false)}>
               Cancel
             </Button>
             <Button

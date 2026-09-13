@@ -20,6 +20,8 @@ function ordinal(n: number): string {
   }
 }
 
+const HEAD = 'h-12 font-semibold text-primary dark:text-heading';
+
 /**
  * The wide subject-columns × student-rows grid shared by the Exam
  * Officer's broadsheet, the Admin's approval view, and the Class
@@ -32,53 +34,69 @@ export function BroadsheetTable({
   rows,
   renderExtraColumn,
   extraColumnHeader,
+  className,
 }: {
   rows: StudentBroadsheetRowDto[];
   renderExtraColumn?: (row: StudentBroadsheetRowDto) => ReactNode;
   extraColumnHeader?: string;
+  /** Container overrides — e.g. `rounded-none border-0` inside a card that already frames the table. */
+  className?: string;
 }) {
   const subjectNames = rows[0]?.subjects.map((s) => s.subjectName) ?? [];
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className={cn('overflow-x-auto rounded-xl border border-border bg-card', className)}>
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
-          <TableRow>
-            <TableHead className="sticky left-0 z-20 bg-card">Student</TableHead>
+          <TableRow className="bg-primary/5 hover:bg-primary/5">
+            {/* Sticky cells need an opaque fill: the tinted header colour mixed
+                onto the card, so scrolled columns can't show through. */}
+            <TableHead
+              className={cn(
+                HEAD,
+                'sticky left-0 z-20 bg-[color-mix(in_oklab,var(--primary)_5%,var(--card))] pl-5',
+              )}
+            >
+              Student
+            </TableHead>
             {subjectNames.map((name) => (
-              <TableHead key={name} className="text-center whitespace-nowrap">
+              <TableHead key={name} className={cn(HEAD, 'text-center whitespace-nowrap')}>
                 {name}
               </TableHead>
             ))}
-            <TableHead className="text-center whitespace-nowrap">Average</TableHead>
-            <TableHead className="bg-primary/5 text-center whitespace-nowrap">Position</TableHead>
-            {extraColumnHeader && <TableHead>{extraColumnHeader}</TableHead>}
+            <TableHead className={cn(HEAD, 'text-center whitespace-nowrap')}>Average</TableHead>
+            <TableHead className={cn(HEAD, 'bg-primary/5 text-center whitespace-nowrap')}>Position</TableHead>
+            {extraColumnHeader && <TableHead className={cn(HEAD, 'pr-5')}>{extraColumnHeader}</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.studentId}>
-              <TableCell className="sticky left-0 z-10 bg-card">
-                <p className="text-sm font-medium text-foreground">
+            <TableRow key={row.studentId} className="hover:bg-transparent">
+              <TableCell className="sticky left-0 z-10 bg-card py-3 pl-5">
+                <p className="text-sm font-semibold text-heading">
                   {row.firstName} {row.lastName}
                 </p>
-                <p className="font-mono text-xs text-muted-foreground">{row.admissionNumber}</p>
+                <p className="font-mono text-xs text-primary dark:text-muted-foreground">
+                  {row.admissionNumber}
+                </p>
               </TableCell>
               {row.subjects.map((subject) => (
-                <TableCell key={subject.classSubjectId} className="text-center">
+                <TableCell key={subject.classSubjectId} className="py-3 text-center">
                   <div className="flex flex-col items-center gap-1">
-                    <span className="text-sm font-semibold tabular-nums">{subject.total.toFixed(1)}</span>
+                    <span className="text-sm font-semibold text-heading tabular-nums">
+                      {subject.total.toFixed(1)}
+                    </span>
                     <Badge variant={gradeBadgeVariant(subject.grade)}>{subject.grade}</Badge>
                   </div>
                 </TableCell>
               ))}
-              <TableCell className="text-center text-sm font-semibold tabular-nums">
+              <TableCell className="py-3 text-center text-sm font-semibold text-heading tabular-nums">
                 {row.overallAverage.toFixed(1)}%
               </TableCell>
-              <TableCell className={cn('bg-primary/5 text-center text-sm font-bold tabular-nums')}>
+              <TableCell className="bg-primary/5 py-3 text-center text-sm font-bold text-primary tabular-nums dark:text-foreground">
                 {ordinal(row.overallPosition)} / {row.classSize}
               </TableCell>
-              {renderExtraColumn && <TableCell>{renderExtraColumn(row)}</TableCell>}
+              {renderExtraColumn && <TableCell className="py-3 pr-5">{renderExtraColumn(row)}</TableCell>}
             </TableRow>
           ))}
         </TableBody>
