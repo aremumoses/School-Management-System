@@ -1,0 +1,44 @@
+# TEMPORARY — lives only on the ci/debug-api-docker-build branch, to reproduce
+# Render's failing sms-api Docker build on a real Linux host with a full log.
+# Delete the branch once the cause is found; never merge this into main.
+name: Debug API Docker build
+
+on:
+  push:
+    branches: [ci/debug-api-docker-build]
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same Dockerfile and context render.yaml gives Render (paths relative to
+      # the repo root, context api/). --no-cache so every step really runs.
+      - name: Build image like Render
+        shell: bash
+        run: docker build --progress=plain --no-cache -f api/Dockerfile -t sms-api-debug api
+
+      # Dummy env: this only proves the image's CMD loads the app. Database and
+      # Redis are unreachable, so a connection error after boot is expected.
+      - name: Boot image with dummy env
+        shell: bash
+        run: |
+          docker run -d --name api \
+            -e NODE_ENV=production -e PORT=4000 \
+            -e DATABASE_URL=postgresql://user:pass@127.0.0.1:5432/db \
+            -e FRONTEND_ORIGIN=http://localhost:3000 \
+            -e JWT_ACCESS_SECRET=ci-dummy-access-secret-0123456789abcdef \
+            -e JWT_REFRESH_SECRET=ci-dummy-refresh-secret-0123456789abcdef \
+            -e STORAGE_ENDPOINT=http://127.0.0.1:9000 -e STORAGE_BUCKET=b \
+            -e STORAGE_ACCESS_KEY_ID=x -e STORAGE_SECRET_ACCESS_KEY=x \
+            -e STORAGE_PUBLIC_URL_BASE=http://127.0.0.1:9000/b \
+            -e PAYSTACK_SECRET_KEY=x -e TERMII_API_KEY=x -e RESEND_API_KEY=x \
+            -e WHATSAPP_API_KEY=x -e ANTHROPIC_API_KEY=x \
+            -e VAPID_PUBLIC_KEY=x -e VAPID_PRIVATE_KEY=x \
+            sms-api-debug
+          sleep 30
+          docker ps -a --filter name=api
+          docker logs api 2>&1 | tail -80
