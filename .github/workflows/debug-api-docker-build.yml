@@ -1,5 +1,5 @@
 # TEMPORARY — lives only on the ci/debug-api-docker-build branch, to reproduce
-# Render's failing sms-api Docker build on a real Linux host with a full log.
+# Render's failing sms-api deploy on a real Linux host with a full log.
 # Delete the branch once the cause is found; never merge this into main.
 name: Debug API Docker build
 
@@ -12,6 +12,20 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sms
+          POSTGRES_PASSWORD: sms
+          POSTGRES_DB: sms
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sms" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
     steps:
       - uses: actions/checkout@v4
 
@@ -21,24 +35,36 @@ jobs:
         shell: bash
         run: docker build --progress=plain --no-cache -f api/Dockerfile -t sms-api-debug api
 
-      # Dummy env: this only proves the image's CMD loads the app. Database and
-      # Redis are unreachable, so a connection error after boot is expected.
-      - name: Boot image with dummy env
+      # Real Postgres + Redis and a valid VAPID keypair, so a clean boot here
+      # proves the image itself is sound and any Render failure is an env value.
+      - name: Migrate, boot, and hit /health
         shell: bash
         run: |
-          docker run -d --name api \
-            -e NODE_ENV=production -e PORT=4000 \
-            -e DATABASE_URL=postgresql://user:pass@127.0.0.1:5432/db \
-            -e FRONTEND_ORIGIN=http://localhost:3000 \
-            -e JWT_ACCESS_SECRET=ci-dummy-access-secret-0123456789abcdef \
-            -e JWT_REFRESH_SECRET=ci-dummy-refresh-secret-0123456789abcdef \
-            -e STORAGE_ENDPOINT=http://127.0.0.1:9000 -e STORAGE_BUCKET=b \
-            -e STORAGE_ACCESS_KEY_ID=x -e STORAGE_SECRET_ACCESS_KEY=x \
-            -e STORAGE_PUBLIC_URL_BASE=http://127.0.0.1:9000/b \
-            -e PAYSTACK_SECRET_KEY=x -e TERMII_API_KEY=x -e RESEND_API_KEY=x \
-            -e WHATSAPP_API_KEY=x -e ANTHROPIC_API_KEY=x \
-            -e VAPID_PUBLIC_KEY=x -e VAPID_PRIVATE_KEY=x \
-            sms-api-debug
-          sleep 30
+          read -r VPUB VPRIV < <(docker run --rm sms-api-debug node -e "const k=require('web-push').generateVAPIDKeys();console.log(k.publicKey+' '+k.privateKey)")
+          ENVS=(
+            -e NODE_ENV=production -e PORT=4000
+            -e DATABASE_URL=postgresql://sms:sms@127.0.0.1:5432/sms
+            -e REDIS_HOST=127.0.0.1 -e REDIS_PORT=6379
+            -e FRONTEND_ORIGIN=http://localhost:3000
+            -e JWT_ACCESS_SECRET=ci-dummy-access-secret-0123456789abcdef
+            -e JWT_REFRESH_SECRET=ci-dummy-refresh-secret-0123456789abcdef
+            -e STORAGE_ENDPOINT=http://127.0.0.1:9000 -e STORAGE_BUCKET=b
+            -e STORAGE_ACCESS_KEY_ID=x -e STORAGE_SECRET_ACCESS_KEY=x
+            -e STORAGE_PUBLIC_URL_BASE=http://127.0.0.1:9000/b
+            -e PAYSTACK_SECRET_KEY=x -e TERMII_API_KEY=x -e RESEND_API_KEY=x
+            -e WHATSAPP_API_KEY=x -e ANTHROPIC_API_KEY=x
+            -e VAPID_PUBLIC_KEY="$VPUB" -e VAPID_PRIVATE_KEY="$VPRIV"
+          )
+          echo "::group::prisma migrate deploy"
+          docker run --rm --network host "${ENVS[@]}" sms-api-debug npx prisma migrate deploy 2>&1 | tail -15
+          echo "::endgroup::"
+          docker run -d --name api --network host "${ENVS[@]}" sms-api-debug
+          ok=0
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4000/health; then ok=1; echo; echo "HEALTH OK after ~$((i*2))s"; break; fi
+            sleep 2
+          done
           docker ps -a --filter name=api
-          docker logs api 2>&1 | tail -80
+          echo "---- container log"
+          docker logs api 2>&1 | tail -60
+          [ "$ok" = 1 ]
