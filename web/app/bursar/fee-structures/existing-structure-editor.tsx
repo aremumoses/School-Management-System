@@ -1,14 +1,13 @@
 'use client';
 
-import { Loader2, Pencil, Plus } from 'lucide-react';
+import { Loader2, Pencil, Plus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
@@ -35,56 +34,135 @@ const TYPE_BADGE_VARIANT: Record<FeeComponentType, 'default' | 'info' | 'warning
 
 export function ExistingStructureEditor({ structure }: { structure: FeeStructureDto }) {
   const total = structure.components.reduce((sum, c) => sum + c.amount, 0);
+  const count = structure.components.length;
 
   return (
-    <Card>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">Fee components</h2>
-          <AddComponentButton
-            structureId={structure.id}
-            existingNames={structure.components.map((c) => c.name)}
-          />
+    <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6 sm:py-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Wallet className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-heading">Fee Components</h2>
+            <p className="text-sm text-muted-foreground">
+              {count} component{count === 1 ? '' : 's'} on this structure
+            </p>
+          </div>
         </div>
+        <AddComponentButton
+          structureId={structure.id}
+          existingNames={structure.components.map((c) => c.name)}
+        />
+      </div>
 
-        {structure.components.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+      {count === 0 ? (
+        <div className="p-5 sm:p-6">
+          <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
             No components yet — add at least one before generating invoices.
           </p>
-        ) : (
-          <div className="space-y-2">
-            {structure.components.map((component) => (
-              <div
-                key={component.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium text-foreground">{component.name}</span>
-                  <Badge variant={TYPE_BADGE_VARIANT[component.type]}>
-                    {TYPE_OPTIONS.find((t) => t.value === component.type)?.label}
-                  </Badge>
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatNaira(component.amount)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <ComponentEditor component={component} />
-                  <ConfirmDeleteButton
-                    itemLabel={component.name}
-                    onConfirm={() => deleteFeeComponent(component.id)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
-          <span className="text-sm font-medium text-foreground">Running total</span>
-          <span className="text-lg font-bold tabular-nums text-foreground">{formatNaira(total)}</span>
         </div>
-      </CardContent>
-    </Card>
+      ) : (
+        <ul className="divide-y divide-border">
+          {structure.components.map((component) => (
+            // Phone: name and badge, then the amount underneath, with the
+            // actions beside both. Wider: one row, actions last.
+            <li
+              key={component.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-5 py-3.5 transition-colors hover:bg-primary/5 sm:flex sm:gap-4 sm:px-6"
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-1">
+                <span className="font-semibold text-heading">{component.name}</span>
+                <Badge variant={TYPE_BADGE_VARIANT[component.type]}>
+                  {TYPE_OPTIONS.find((t) => t.value === component.type)?.label}
+                </Badge>
+              </div>
+              <div className="row-span-2 flex items-center gap-1 sm:order-last">
+                <ComponentEditor component={component} />
+                <ConfirmDeleteButton
+                  itemLabel={component.name}
+                  onConfirm={() => deleteFeeComponent(component.id)}
+                />
+              </div>
+              <span className="text-sm font-semibold text-heading tabular-nums sm:text-base">
+                {formatNaira(component.amount)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex items-center justify-between gap-3 border-t border-border bg-primary/5 px-5 py-4 sm:px-6">
+        <span className="font-semibold text-heading">Running total</span>
+        <span className="text-xl font-bold text-heading tabular-nums">{formatNaira(total)}</span>
+      </div>
+    </section>
+  );
+}
+
+function ComponentFields({
+  idPrefix,
+  name,
+  onNameChange,
+  amount,
+  onAmountChange,
+  type,
+  onTypeChange,
+  namePlaceholder,
+}: {
+  idPrefix: string;
+  name: string;
+  onNameChange: (value: string) => void;
+  amount: string;
+  onAmountChange: (value: string) => void;
+  type: FeeComponentType;
+  onTypeChange: (value: FeeComponentType) => void;
+  namePlaceholder?: string;
+}) {
+  return (
+    <>
+      <div className="space-y-2">
+        <FormFieldLabel htmlFor={`${idPrefix}-name`} required>
+          Name
+        </FormFieldLabel>
+        <Input
+          id={`${idPrefix}-name`}
+          placeholder={namePlaceholder}
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          className="h-10"
+        />
+      </div>
+      <div className="space-y-2">
+        <FormFieldLabel htmlFor={`${idPrefix}-amount`} required>
+          Amount (₦)
+        </FormFieldLabel>
+        <Input
+          id={`${idPrefix}-amount`}
+          type="number"
+          step="0.01"
+          min="0"
+          className="h-10 tabular-nums"
+          value={amount}
+          onChange={(e) => onAmountChange(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <FormFieldLabel>Type</FormFieldLabel>
+        <Select value={type} onValueChange={(v) => v && onTypeChange(v as FeeComponentType)} items={TYPE_OPTIONS}>
+          <SelectTrigger className="w-full data-[size=default]:h-10" aria-label="Component type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
   );
 }
 
@@ -118,41 +196,20 @@ function ComponentEditor({ component }: { component: FeeComponentDto }) {
       <PopoverTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={`Edit ${component.name}`} />}>
         <Pencil className="size-4" aria-hidden="true" />
       </PopoverTrigger>
-      <PopoverContent className="w-72">
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor={`edit-name-${component.id}`}>Name</Label>
-            <Input id={`edit-name-${component.id}`} value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor={`edit-amount-${component.id}`}>Amount (₦)</Label>
-            <Input
-              id={`edit-amount-${component.id}`}
-              type="number"
-              step="0.01"
-              min="0"
-              className="tabular-nums"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => v && setType(v as FeeComponentType)} items={TYPE_OPTIONS}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="button" size="sm" className="w-full" disabled={isSaving} onClick={save}>
-            {isSaving ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : 'Save'}
+      <PopoverContent className="w-80">
+        <div className="space-y-4">
+          <p className="text-sm font-semibold text-heading">Edit {component.name}</p>
+          <ComponentFields
+            idPrefix={`edit-${component.id}`}
+            name={name}
+            onNameChange={setName}
+            amount={amount}
+            onAmountChange={setAmount}
+            type={type}
+            onTypeChange={setType}
+          />
+          <Button type="button" className="h-10 w-full" disabled={isSaving} onClick={save}>
+            {isSaving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : 'Save'}
           </Button>
         </div>
       </PopoverContent>
@@ -200,50 +257,25 @@ function AddComponentButton({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button type="button" variant="outline" size="sm" />}>
+      <PopoverTrigger render={<Button type="button" variant="outline" />}>
         <Plus className="size-4" aria-hidden="true" />
         Add Component
       </PopoverTrigger>
-      <PopoverContent className="w-72">
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="new-component-name">Name</Label>
-            <Input
-              id="new-component-name"
-              placeholder="e.g. Sports Levy"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="new-component-amount">Amount (₦)</Label>
-            <Input
-              id="new-component-amount"
-              type="number"
-              step="0.01"
-              min="0"
-              className="tabular-nums"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => v && setType(v as FeeComponentType)} items={TYPE_OPTIONS}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="button" size="sm" className="w-full" disabled={isSaving} onClick={save}>
-            {isSaving ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : 'Add'}
+      <PopoverContent className="w-80">
+        <div className="space-y-4">
+          <p className="text-sm font-semibold text-heading">New component</p>
+          <ComponentFields
+            idPrefix="new-component"
+            name={name}
+            onNameChange={setName}
+            amount={amount}
+            onAmountChange={setAmount}
+            type={type}
+            onTypeChange={setType}
+            namePlaceholder="e.g. Sports Levy"
+          />
+          <Button type="button" className="h-10 w-full" disabled={isSaving} onClick={save}>
+            {isSaving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : 'Add'}
           </Button>
         </div>
       </PopoverContent>

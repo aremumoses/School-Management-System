@@ -30,7 +30,7 @@ export function DocumentPreview({
   const reflexive = student.gender === 'MALE' ? 'himself' : 'herself';
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-5 font-serif text-sm leading-relaxed text-foreground">
+    <div className="space-y-3 rounded-xl border border-border bg-primary/5 p-5 font-serif text-sm leading-relaxed text-foreground">
       <p className="text-center text-xs font-sans uppercase tracking-wide text-muted-foreground">
         Preview — not yet signed
       </p>

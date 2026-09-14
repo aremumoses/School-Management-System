@@ -1,9 +1,11 @@
 'use client';
 
+import { Loader2, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { NAV_ICONS } from '@/lib/nav-icons';
 import { groupNavItems, type NavItem } from '@/lib/dashboard-config';
 import { cn } from '@/lib/utils';
+import { useLogout } from './use-logout';
 
 /**
  * The grouped, icon-led sidebar navigation shared by every dashboard shell
@@ -136,6 +138,49 @@ export function AppSidebarNav({
         </div>
       ))}
     </nav>
+  );
+}
+
+/**
+ * Log out, pinned to the bottom of the sidebar so it is always one click
+ * away — before this it only existed inside the account menu in the top bar.
+ * Styled like a nav item; in the collapsed rail it is icon-only with a title.
+ */
+export function SidebarLogout({ collapsed = false }: { collapsed?: boolean }) {
+  const { loggingOut, logout } = useLogout();
+
+  return (
+    <div
+      className={cn(
+        'shrink-0 border-t border-sidebar-border py-4',
+        collapsed ? 'flex justify-center px-2' : 'px-4',
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => void logout()}
+        disabled={loggingOut}
+        title={collapsed ? 'Log out' : undefined}
+        className={cn(
+          'group flex items-center rounded-md text-sm text-sidebar-foreground/90 transition-colors duration-[--duration-fast] ease-[--ease-out-soft] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none disabled:opacity-70',
+          collapsed ? 'size-11 justify-center' : 'w-full gap-3 px-4 py-2.5',
+        )}
+      >
+        {loggingOut ? (
+          <Loader2 className="size-[18px] shrink-0 animate-spin" aria-hidden="true" />
+        ) : (
+          <LogOut
+            className="size-[18px] shrink-0 text-sidebar-foreground/80 transition-colors group-hover:text-sidebar-accent-foreground"
+            aria-hidden="true"
+          />
+        )}
+        {collapsed ? (
+          <span className="sr-only">Log out</span>
+        ) : (
+          <span>{loggingOut ? 'Logging out…' : 'Log out'}</span>
+        )}
+      </button>
+    </div>
   );
 }
 

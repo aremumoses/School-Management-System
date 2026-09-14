@@ -4,8 +4,8 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -59,10 +59,10 @@ export function RosterManager({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-64 space-y-1.5">
-          <Label>Add student</Label>
+    <div>
+      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-end sm:px-6">
+        <div className="space-y-2 sm:w-80">
+          <FormFieldLabel>Add student</FormFieldLabel>
           <Select
             value={studentId}
             onValueChange={(v) => {
@@ -70,7 +70,7 @@ export function RosterManager({
             }}
             items={studentOptions.map((s) => ({ value: s.id, label: s.label }))}
           >
-            <SelectTrigger className="w-full" aria-label="Choose student to add">
+            <SelectTrigger className="w-full data-[size=default]:h-10" aria-label="Choose student to add">
               <SelectValue placeholder="Choose a student…" />
             </SelectTrigger>
             <SelectContent>
@@ -82,46 +82,57 @@ export function RosterManager({
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" onClick={() => void handleAdd()} disabled={isAdding || !studentId}>
+        <Button className="h-10 px-4" onClick={() => void handleAdd()} disabled={isAdding || !studentId}>
           {isAdding ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
-            <Plus className="size-3.5" aria-hidden="true" />
+            <Plus className="size-4" aria-hidden="true" />
           )}
           Add
         </Button>
       </div>
 
       {memberships.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">No members yet.</p>
+        <p className="px-5 py-8 text-center text-sm text-muted-foreground sm:px-6">No members yet.</p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {memberships.map((membership) => (
-            <li key={membership.id} className="flex items-center justify-between px-4 py-2.5">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {membership.student.firstName} {membership.student.lastName}
-                </p>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {membership.student.admissionNumber}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                onClick={() => void handleRemove(membership.student.id)}
-                disabled={removingId === membership.student.id}
-                aria-label={`Remove ${membership.student.firstName}`}
+        <ul className="divide-y divide-border">
+          {memberships.map((membership) => {
+            const { student } = membership;
+            return (
+              <li
+                key={membership.id}
+                className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5 sm:px-6"
               >
-                {removingId === membership.student.id ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Trash2 className="size-3.5" aria-hidden="true" />
-                )}
-              </Button>
-            </li>
-          ))}
+                <span
+                  aria-hidden="true"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary dark:text-heading"
+                >
+                  {`${student.firstName[0] ?? ''}${student.lastName[0] ?? ''}`.toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-heading">
+                    {student.firstName} {student.lastName}
+                  </p>
+                  <p className="font-mono text-xs text-primary dark:text-muted-foreground">
+                    {student.admissionNumber}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => void handleRemove(student.id)}
+                  disabled={removingId === student.id}
+                  aria-label={`Remove ${student.firstName}`}
+                >
+                  {removingId === student.id ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Trash2 className="size-4 text-destructive" aria-hidden="true" />
+                  )}
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

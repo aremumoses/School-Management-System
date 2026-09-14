@@ -1,14 +1,8 @@
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getClub } from '@/lib/actions/clubs';
 import { apiFetch } from '@/lib/api';
 import type { StaffDto } from '@/lib/types/staff';
 import type { StudentListResponse } from '@/lib/types/students';
-import { ClubFormDialog } from '../club-form-dialog';
-import { RosterManager } from './roster-manager';
+import { ClubDetailView } from './club-detail-view';
 
 export default async function ClubDetailPage({
   params,
@@ -36,43 +30,5 @@ export default async function ClubDetailPage({
       label: `${s.firstName} ${s.lastName} (${s.admissionNumber})`,
     }));
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={club.name}
-        description={[
-          club.patron ? `Patron: ${club.patron.firstName} ${club.patron.lastName}` : null,
-          club.meetingSchedule,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        action={
-          <div className="flex items-center gap-2">
-            <ClubFormDialog staffOptions={staffOptions} club={club} />
-            <Button variant="ghost" size="sm" render={<Link href="/admin/clubs" />}>
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              All Clubs
-            </Button>
-          </div>
-        }
-      />
-
-      {club.description && (
-        <p className="text-sm text-muted-foreground">{club.description}</p>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Members ({club.memberships.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RosterManager
-            clubId={club.id}
-            memberships={club.memberships}
-            studentOptions={studentOptions}
-          />
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <ClubDetailView club={club} staffOptions={staffOptions} studentOptions={studentOptions} />;
 }

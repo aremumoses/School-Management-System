@@ -70,10 +70,10 @@ export function GenerateInvoicesButton({
         else setPreview(null);
       }}
     >
-      <AlertDialogTrigger render={<Button />}>Generate Invoices for This Class</AlertDialogTrigger>
+      <AlertDialogTrigger render={<Button className="h-10 shrink-0 px-5" />}>Generate Invoices for This Class</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Generate invoices for {className}?</AlertDialogTitle>
+          <AlertDialogTitle className="text-heading">Generate invoices for {className}?</AlertDialogTitle>
           <AlertDialogDescription>
             {isLoadingPreview || !preview ? (
               <span className="flex items-center gap-2 py-2">

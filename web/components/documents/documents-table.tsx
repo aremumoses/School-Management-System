@@ -59,17 +59,37 @@ export function DocumentsTable({ rows }: { rows: DocumentRow[] }) {
       id: 'student',
       header: 'Student',
       accessorFn: (row) => `${row.student.firstName} ${row.student.lastName}`,
-      cell: ({ row }) => (
-        <span className="font-medium text-foreground">
-          {row.original.student.firstName} {row.original.student.lastName}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const { student } = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary md:flex dark:text-heading"
+            >
+              {`${student.firstName[0] ?? ''}${student.lastName[0] ?? ''}`.toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-heading">
+                {student.firstName} {student.lastName}
+              </p>
+              <p className="font-mono text-xs text-primary dark:text-muted-foreground">
+                {student.admissionNumber}
+              </p>
+            </div>
+          </div>
+        );
+      },
     },
     {
       id: 'type',
       header: 'Type',
       accessorFn: (row) => row.document.type,
-      cell: ({ row }) => TYPE_LABELS[row.original.document.type],
+      cell: ({ row }) => (
+        <span className="inline-flex rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary dark:text-foreground">
+          {TYPE_LABELS[row.original.document.type]}
+        </span>
+      ),
     },
     {
       id: 'status',
@@ -112,7 +132,7 @@ export function DocumentsTable({ rows }: { rows: DocumentRow[] }) {
         }
         if (document.url) {
           return (
-            <Button size="sm" variant="ghost" render={<a href={document.url} target="_blank" rel="noreferrer" />}>
+            <Button size="sm" variant="outline" render={<a href={document.url} target="_blank" rel="noreferrer" />}>
               <Download className="size-3.5" aria-hidden="true" />
               Download
             </Button>
@@ -130,12 +150,15 @@ export function DocumentsTable({ rows }: { rows: DocumentRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <Empty className="border border-dashed border-border">
+      <Empty className="rounded-xl bg-card py-12 dark:ring-1 dark:ring-foreground/10">
         <EmptyHeader>
-          <EmptyMedia variant="icon">
+          <EmptyMedia
+            variant="icon"
+            className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+          >
             <FileText />
           </EmptyMedia>
-          <EmptyTitle>No documents yet</EmptyTitle>
+          <EmptyTitle className="text-base font-semibold text-heading">No documents yet</EmptyTitle>
           <EmptyDescription>Generate a testimonial or certificate to get started.</EmptyDescription>
         </EmptyHeader>
       </Empty>

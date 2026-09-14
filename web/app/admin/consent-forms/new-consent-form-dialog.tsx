@@ -4,6 +4,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,7 +16,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -78,25 +78,30 @@ export function NewConsentFormDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New consent form</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">New consent form</DialogTitle>
           <DialogDescription>
             Parents of the targeted students e-sign (consent or decline) from their portal.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="cf-title">Title</Label>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="cf-title" required>
+              Title
+            </FormFieldLabel>
             <Input
               id="cf-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Excursion to the National Museum"
+              className="h-10"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="cf-desc">Description</Label>
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="cf-desc" required>
+              Description
+            </FormFieldLabel>
             <Textarea
               id="cf-desc"
               value={description}
@@ -107,8 +112,8 @@ export function NewConsentFormDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Type</Label>
+            <div className="space-y-2">
+              <FormFieldLabel>Type</FormFieldLabel>
               <Select
                 value={type}
                 onValueChange={(v) => {
@@ -116,7 +121,7 @@ export function NewConsentFormDialog({
                 }}
                 items={TYPE_OPTIONS}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full data-[size=default]:h-10" aria-label="Type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -128,8 +133,8 @@ export function NewConsentFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Send to</Label>
+            <div className="space-y-2">
+              <FormFieldLabel>Send to</FormFieldLabel>
               <Select
                 value={target}
                 onValueChange={(v) => {
@@ -140,7 +145,7 @@ export function NewConsentFormDialog({
                   ...armOptions.map((a) => ({ value: a.id, label: a.label })),
                 ]}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full data-[size=default]:h-10" aria-label="Send to">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

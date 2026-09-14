@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal } from 'lucide-react';
+import { Loader2, LogOut, MoreHorizontal } from 'lucide-react';
 import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,10 +10,11 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { findActiveNavItem, groupNavItems, type NavItem } from '@/lib/dashboard-config';
 import { NAV_ICONS } from '@/lib/nav-icons';
 import { cn } from '@/lib/utils';
-import { AppSidebarNav, SidebarBrand } from './app-sidebar';
+import { AppSidebarNav, SidebarBrand, SidebarLogout } from './app-sidebar';
 import { GlobalSearchTrigger } from './global-search';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
+import { useLogout } from './use-logout';
 import { UserMenu } from './user-menu';
 
 interface MobileDashboardShellProps {
@@ -43,6 +44,7 @@ export function MobileDashboardShell({
 }: MobileDashboardShellProps) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { loggingOut, logout } = useLogout();
   const activeItem = findActiveNavItem(pathname, navItems);
 
   const byLabel = new Map(navItems.map((item) => [item.label, item]));
@@ -56,11 +58,14 @@ export function MobileDashboardShell({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-[17.5rem] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex print:hidden">
+      {/* Sticky and viewport-tall, as in staff-dashboard-shell.tsx, so Log out
+          stays in view. */}
+      <aside className="sticky top-0 hidden h-screen w-[17.5rem] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex print:hidden">
         <SidebarBrand label={label} collapsed={false} />
         <div className="flex-1 overflow-y-auto">
           <AppSidebarNav navItems={navItems} activeHref={activeItem?.href} />
         </div>
+        <SidebarLogout />
       </aside>
 
       {/* min-w-0 overrides the flex default of min-width:auto — see the
@@ -187,6 +192,22 @@ export function MobileDashboardShell({
                     })}
                   </div>
                 ))}
+                {/* Phones have no sidebar, so Log out lives at the end of More. */}
+                <div className="border-t border-border pt-3">
+                  <button
+                    type="button"
+                    onClick={() => void logout()}
+                    disabled={loggingOut}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium text-destructive transition-colors duration-[--duration-fast] hover:bg-destructive/10 disabled:opacity-70"
+                  >
+                    {loggingOut ? (
+                      <Loader2 className="size-[18px] shrink-0 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <LogOut className="size-[18px] shrink-0" aria-hidden="true" />
+                    )}
+                    {loggingOut ? 'Logging out…' : 'Log out'}
+                  </button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

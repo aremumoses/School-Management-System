@@ -9,7 +9,7 @@ import { Breadcrumbs, type Crumb } from '@/components/ui/breadcrumb';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { findActiveNavItem, type NavItem } from '@/lib/dashboard-config';
 import { cn } from '@/lib/utils';
-import { AppSidebarNav, SidebarBrand } from './app-sidebar';
+import { AppSidebarNav, SidebarBrand, SidebarLogout } from './app-sidebar';
 import { GlobalSearchTrigger } from './global-search';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
@@ -85,7 +85,9 @@ export function StaffDashboardShell({
     <div className="flex min-h-screen bg-background">
       <aside
         className={cn(
-          'hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-[--duration-base] ease-[--ease-out-soft] md:flex print:hidden',
+          // Sticky and viewport-tall: the nav scrolls inside it, so Log out at
+          // the bottom stays in view on long pages.
+          'sticky top-0 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-[--duration-base] ease-[--ease-out-soft] md:flex print:hidden',
           collapsed ? 'w-[5.5rem]' : 'w-[17.5rem]',
         )}
       >
@@ -93,6 +95,7 @@ export function StaffDashboardShell({
         <div className="flex-1 overflow-x-hidden overflow-y-auto">
           <AppSidebarNav navItems={navItems} activeHref={activeItem?.href} collapsed={collapsed} />
         </div>
+        <SidebarLogout collapsed={collapsed} />
       </aside>
 
       {/* min-w-0 overrides the flex default of min-width:auto — without it,
@@ -127,6 +130,7 @@ export function StaffDashboardShell({
                 activeHref={activeItem?.href}
                 onNavigate={() => setMobileNavOpen(false)}
               />
+              <SidebarLogout />
             </SheetContent>
           </Sheet>
           <Button

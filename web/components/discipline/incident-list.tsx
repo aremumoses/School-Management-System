@@ -19,6 +19,16 @@ function latestStatusLabel(incident: IncidentWithActionsDto): string {
   return latest.status;
 }
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
 export function IncidentList({
   rows,
   basePath,
@@ -32,12 +42,20 @@ export function IncidentList({
       header: 'Student',
       accessorFn: (row) => row.studentName,
       cell: ({ row }) => (
-        <Link
-          href={`${basePath}/${row.original.incident.id}`}
-          className="font-medium text-foreground hover:text-primary hover:underline"
-        >
-          {row.original.studentName}
-        </Link>
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary md:flex dark:text-heading"
+          >
+            {initials(row.original.studentName)}
+          </span>
+          <Link
+            href={`${basePath}/${row.original.incident.id}`}
+            className="font-semibold text-heading hover:text-primary hover:underline dark:hover:text-foreground"
+          >
+            {row.original.studentName}
+          </Link>
+        </div>
       ),
     },
     {
@@ -76,12 +94,15 @@ export function IncidentList({
 
   if (rows.length === 0) {
     return (
-      <Empty className="border border-dashed border-border">
+      <Empty className="rounded-xl bg-card py-12 dark:ring-1 dark:ring-foreground/10">
         <EmptyHeader>
-          <EmptyMedia variant="icon">
+          <EmptyMedia
+            variant="icon"
+            className="size-12 rounded-full bg-primary/10 text-primary [&_svg:not([class*='size-'])]:size-5"
+          >
             <Gavel />
           </EmptyMedia>
-          <EmptyTitle>No incidents logged</EmptyTitle>
+          <EmptyTitle className="text-base font-semibold text-heading">No incidents logged</EmptyTitle>
           <EmptyDescription>Cases you log or have visibility into will appear here.</EmptyDescription>
         </EmptyHeader>
       </Empty>

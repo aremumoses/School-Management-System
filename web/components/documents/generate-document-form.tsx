@@ -3,6 +3,7 @@
 import { FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { DocumentPreview } from '@/components/documents/document-preview';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -78,7 +78,7 @@ export function GenerateDocumentForm({ students }: { students: StudentOption[] }
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button>
             <FileText className="size-4" aria-hidden="true" />
             Generate Document
           </Button>
@@ -86,51 +86,55 @@ export function GenerateDocumentForm({ students }: { students: StudentOption[] }
       />
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Request a Document</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">Request a Document</DialogTitle>
           <DialogDescription>
             Starts as a draft. The PDF is only rendered once an Admin approves it.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="document-student">Student</Label>
-            <Select
-              value={studentId}
-              onValueChange={(v) => v && setStudentId(v)}
-              items={students.map((s) => ({ value: s.id, label: studentLabel(s) }))}
-            >
-              <SelectTrigger id="document-student" className="w-full">
-                <SelectValue placeholder="Select a student" />
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {studentLabel(s)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="document-student" required>
+                Student
+              </FormFieldLabel>
+              <Select
+                value={studentId}
+                onValueChange={(v) => v && setStudentId(v)}
+                items={students.map((s) => ({ value: s.id, label: studentLabel(s) }))}
+              >
+                <SelectTrigger id="document-student" className="w-full data-[size=default]:h-10">
+                  <SelectValue placeholder="Select a student" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {studentLabel(s)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="document-type">Document Type</Label>
-            <Select
-              value={type}
-              onValueChange={(v) => v && setType(v as GeneratedDocumentType)}
-              items={TYPE_OPTIONS}
-            >
-              <SelectTrigger id="document-type" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="document-type">Document type</FormFieldLabel>
+              <Select
+                value={type}
+                onValueChange={(v) => v && setType(v as GeneratedDocumentType)}
+                items={TYPE_OPTIONS}
+              >
+                <SelectTrigger id="document-type" className="w-full data-[size=default]:h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {selectedStudent && (

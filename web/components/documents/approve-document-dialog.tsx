@@ -57,7 +57,7 @@ export function ApproveDocumentDialog({
       <DialogTrigger render={trigger} />
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Review &amp; Approve</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">Review &amp; Approve</DialogTitle>
           <DialogDescription>
             {student.firstName} {student.lastName} — {type === 'TESTIMONIAL' ? 'Testimonial' : 'Certificate'}
           </DialogDescription>

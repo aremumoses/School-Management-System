@@ -3,8 +3,8 @@
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -41,32 +41,33 @@ export function ProposeActionForm({ incidentId }: { incidentId: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Propose a Disciplinary Action</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Select
-          value={actionType}
-          onValueChange={(v) => v && setActionType(v as DisciplinaryActionType)}
-          items={ACTION_OPTIONS}
-        >
-          <SelectTrigger className="w-full sm:w-64">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ACTION_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
-        <Button type="button" size="sm" disabled={isSaving} onClick={submit}>
+    <section className="rounded-xl bg-card p-5 sm:p-6 dark:ring-1 dark:ring-foreground/10">
+      <h2 className="text-lg font-semibold text-heading">Propose a Disciplinary Action</h2>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="space-y-2 sm:w-64">
+          <FormFieldLabel htmlFor="propose-action-type">Action</FormFieldLabel>
+          <Select
+            value={actionType}
+            onValueChange={(v) => v && setActionType(v as DisciplinaryActionType)}
+            items={ACTION_OPTIONS}
+          >
+            <SelectTrigger id="propose-action-type" className="w-full data-[size=default]:h-10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACTION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="button" className="h-10 px-5" disabled={isSaving} onClick={submit}>
           {isSaving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : 'Propose Action'}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+      {helper && <p className="mt-2 text-sm text-muted-foreground">{helper}</p>}
+    </section>
   );
 }

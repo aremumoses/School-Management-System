@@ -3,6 +3,7 @@
 import { Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,7 +15,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -75,7 +75,7 @@ export function IncidentForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button>
             <Plus className="size-4" aria-hidden="true" />
             Log Incident
           </Button>
@@ -83,22 +83,24 @@ export function IncidentForm({
       />
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Log a Disciplinary Incident</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-heading">Log a Disciplinary Incident</DialogTitle>
           <DialogDescription>
             Record what happened. Proposing a disciplinary action comes after, on the incident&apos;s
             detail page.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="incident-student">Student</Label>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="incident-student" required>
+              Student
+            </FormFieldLabel>
             <Select
               value={studentId}
               onValueChange={(v) => v && setStudentId(v)}
               items={students.map((s) => ({ value: s.id, label: s.name }))}
             >
-              <SelectTrigger id="incident-student" className="w-full">
+              <SelectTrigger id="incident-student" className="w-full data-[size=default]:h-10">
                 <SelectValue placeholder="Select a student" />
               </SelectTrigger>
               <SelectContent>
@@ -112,14 +114,16 @@ export function IncidentForm({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="incident-severity">Severity</Label>
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="incident-severity" required>
+                Severity
+              </FormFieldLabel>
               <Select
                 value={severity}
                 onValueChange={(v) => v && setSeverity(v as IncidentSeverity)}
                 items={SEVERITY_OPTIONS}
               >
-                <SelectTrigger id="incident-severity" className="w-full">
+                <SelectTrigger id="incident-severity" className="w-full data-[size=default]:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,20 +135,25 @@ export function IncidentForm({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="incident-date">Date</Label>
+            <div className="space-y-2">
+              <FormFieldLabel htmlFor="incident-date" required>
+                Date
+              </FormFieldLabel>
               <Input
                 id="incident-date"
                 type="date"
                 value={date}
                 max={todayInSchoolTimezone()}
                 onChange={(e) => setDate(e.target.value)}
+                className="h-10"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="incident-description">What happened?</Label>
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="incident-description" required>
+              What happened?
+            </FormFieldLabel>
             <Textarea
               id="incident-description"
               rows={4}

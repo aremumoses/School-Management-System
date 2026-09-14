@@ -2,8 +2,6 @@
 
 import { ChevronsUpDown, LogOut } from 'lucide-react';
 import type { Session } from 'next-auth';
-import { signOut } from 'next-auth/react';
-import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ROLE_LABELS } from '@/lib/role-labels';
+import { useLogout } from './use-logout';
 
 function initials(name?: string | null): string {
   if (!name) return '?';
@@ -28,21 +27,8 @@ function initials(name?: string | null): string {
 }
 
 export function UserMenu({ session }: { session: Session }) {
-  const [loggingOut, setLoggingOut] = useState(false);
+  const { loggingOut, logout } = useLogout();
   const primaryRole = session.user.roles[0];
-
-  async function handleLogout() {
-    setLoggingOut(true);
-    try {
-      // Revoke the refresh token on the API before clearing the local
-      // NextAuth session — see app/api/logout/route.ts for why this is a
-      // separate call rather than something signOut() can do itself.
-      await fetch('/api/logout', { method: 'POST' });
-    } catch {
-      // Best-effort — sign out locally regardless.
-    }
-    await signOut({ callbackUrl: '/login' });
-  }
 
   return (
     <DropdownMenu>
@@ -80,7 +66,7 @@ export function UserMenu({ session }: { session: Session }) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={handleLogout} disabled={loggingOut}>
+        <DropdownMenuItem variant="destructive" onClick={() => void logout()} disabled={loggingOut}>
           <LogOut className="size-4" />
           {loggingOut ? 'Logging out…' : 'Log out'}
         </DropdownMenuItem>

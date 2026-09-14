@@ -1,10 +1,11 @@
 'use client';
 
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { AuditLogEntry } from '@/lib/types/admin';
+import { cn } from '@/lib/utils';
 
 const ACTION_VARIANT: Record<string, 'success' | 'error' | 'warning' | 'info' | 'outline'> = {
   CREATE: 'success',
@@ -22,35 +23,46 @@ function actionVariant(action: string): 'success' | 'error' | 'warning' | 'info'
   return key ? ACTION_VARIANT[key] : 'outline';
 }
 
+const HEAD = 'h-12 text-left font-semibold whitespace-nowrap text-primary dark:text-heading';
+
+function JsonPanel({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1.5 text-xs font-semibold text-heading">{label}</p>
+      <pre className="max-h-80 overflow-auto rounded-lg bg-card p-3 font-mono text-xs text-foreground ring-1 ring-border">
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    </div>
+  );
+}
+
 function ExpandableRow({ entry }: { entry: AuditLogEntry }) {
   const [expanded, setExpanded] = useState(false);
   const hasJson = entry.beforeJson != null || entry.afterJson != null;
 
   return (
     <>
-      <tr className="hover:bg-muted/30">
-        <td className="px-3 py-2">
-          <code className="text-xs font-mono text-muted-foreground">
-            {entry.actorType}
-          </code>
+      <tr className="transition-colors hover:bg-primary/5">
+        <td className="py-3 pr-3 pl-5 sm:pl-6">
+          <span className="block text-xs font-semibold tracking-wide text-heading">{entry.actorType}</span>
+          <span className="block font-mono text-xs text-muted-foreground">
+            {entry.actorId ? entry.actorId.slice(0, 8) + '…' : '—'}
+          </span>
         </td>
-        <td className="px-3 py-2 text-xs text-muted-foreground">
-          {entry.actorId ? entry.actorId.slice(0, 8) + '…' : '—'}
-        </td>
-        <td className="px-3 py-2">
-          <Badge variant={actionVariant(entry.action)} className="text-xs">
+        <td className="px-3 py-3">
+          <Badge variant={actionVariant(entry.action)} className="font-mono text-xs">
             {entry.action}
           </Badge>
         </td>
-        <td className="px-3 py-2">
-          <span className="text-xs font-mono">{entry.entityType}</span>
+        <td className="px-3 py-3">
+          <span className="block text-sm font-medium text-heading">{entry.entityType}</span>
           {entry.entityId && (
-            <span className="ml-1 text-xs text-muted-foreground">
+            <span className="block font-mono text-xs text-muted-foreground">
               {entry.entityId.slice(0, 8)}…
             </span>
           )}
         </td>
-        <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
+        <td className="px-3 py-3 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
           {new Date(entry.createdAt).toLocaleString('en-GB', {
             day: '2-digit',
             month: 'short',
@@ -59,45 +71,29 @@ function ExpandableRow({ entry }: { entry: AuditLogEntry }) {
             minute: '2-digit',
           })}
         </td>
-        <td className="px-3 py-2">
+        <td className="py-3 pr-5 pl-3 text-right sm:pr-6">
           {hasJson ? (
             <Button
               variant="ghost"
-              size="sm"
+              size="icon-sm"
               onClick={() => setExpanded((e) => !e)}
               aria-expanded={expanded}
-              className="h-6 w-6 p-0"
             >
-              {expanded ? (
-                <ChevronDown className="size-3.5" aria-hidden="true" />
-              ) : (
-                <ChevronRight className="size-3.5" aria-hidden="true" />
-              )}
+              <ChevronDown
+                className={cn('size-4 transition-transform', expanded && 'rotate-180')}
+                aria-hidden="true"
+              />
               <span className="sr-only">{expanded ? 'Collapse' : 'Expand'} detail</span>
             </Button>
           ) : null}
         </td>
       </tr>
       {expanded && hasJson && (
-        <tr className="bg-muted/20">
-          <td colSpan={6} className="px-3 pb-3 pt-1">
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              {entry.beforeJson != null && (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Before</p>
-                  <pre className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">
-                    {JSON.stringify(entry.beforeJson, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {entry.afterJson != null && (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">After</p>
-                  <pre className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">
-                    {JSON.stringify(entry.afterJson, null, 2)}
-                  </pre>
-                </div>
-              )}
+        <tr className="bg-muted/40">
+          <td colSpan={5} className="px-5 pt-1 pb-4 sm:px-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {entry.beforeJson != null && <JsonPanel label="Before" value={entry.beforeJson} />}
+              {entry.afterJson != null && <JsonPanel label="After" value={entry.afterJson} />}
             </div>
           </td>
         </tr>
@@ -106,36 +102,39 @@ function ExpandableRow({ entry }: { entry: AuditLogEntry }) {
   );
 }
 
+/** The entries table — the page frames it in a card with the total and pagination. */
 export function AuditLogTable({ entries }: { entries: AuditLogEntry[] }) {
   if (entries.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
+      <p className="px-5 py-10 text-center text-sm text-muted-foreground sm:px-6">
         No audit log entries match the current filters.
       </p>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">Actor Type</th>
-              <th className="px-3 py-2 font-medium">Actor ID</th>
-              <th className="px-3 py-2 font-medium">Action</th>
-              <th className="px-3 py-2 font-medium">Entity</th>
-              <th className="px-3 py-2 font-medium">Timestamp</th>
-              <th className="px-3 py-2 font-medium" aria-label="Expand" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {entries.map((entry) => (
-              <ExpandableRow key={entry.id} entry={entry} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    // `relative` makes this scroller the containing block for the sr-only
+    // labels (absolutely positioned) in the last column — without it they
+    // escape the scroll clip and push the whole page sideways on phones.
+    <div className="relative overflow-x-auto">
+      <table className="w-full min-w-[40rem] text-sm">
+        <thead>
+          <tr className="border-b border-border bg-primary/5">
+            <th scope="col" className={cn(HEAD, 'pr-3 pl-5 sm:pl-6')}>Actor</th>
+            <th scope="col" className={cn(HEAD, 'px-3')}>Action</th>
+            <th scope="col" className={cn(HEAD, 'px-3')}>Entity</th>
+            <th scope="col" className={cn(HEAD, 'px-3')}>Timestamp</th>
+            <th scope="col" className="w-14 pr-5 sm:pr-6">
+              <span className="sr-only">Details</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {entries.map((entry) => (
+            <ExpandableRow key={entry.id} entry={entry} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

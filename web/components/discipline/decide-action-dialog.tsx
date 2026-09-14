@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { approveAction, rejectAction } from '@/lib/actions/discipline';
 import type { DisciplinaryActionType } from '@/lib/types/discipline';
 
@@ -85,7 +86,7 @@ export function DecideActionDialog({
       <AlertDialogTrigger render={trigger} />
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
+          <AlertDialogTitle className="text-heading">
             {isApprove ? 'Approve' : 'Reject'} {ACTION_LABELS[actionType]}?
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -106,11 +107,11 @@ export function DecideActionDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-3 text-left">
-          <div className="space-y-1.5">
-            <Label htmlFor="decision-notes">
-              {decision === 'reject' ? 'Reason (required)' : 'Notes (optional)'}
-            </Label>
+        <div className="space-y-4 text-left">
+          <div className="space-y-2">
+            <FormFieldLabel htmlFor="decision-notes" required={decision === 'reject'}>
+              {decision === 'reject' ? 'Reason' : 'Notes (optional)'}
+            </FormFieldLabel>
             <Textarea
               id="decision-notes"
               rows={3}
@@ -125,7 +126,7 @@ export function DecideActionDialog({
           </div>
 
           {isApprove && isIrreversible && (
-            <div className="flex items-start gap-2 rounded-lg border border-error-soft bg-error-soft/40 p-3">
+            <div className="flex items-start gap-2.5 rounded-xl border border-error-soft bg-error-soft/40 p-3.5">
               <Checkbox
                 id="ack-irreversible"
                 checked={acknowledged}

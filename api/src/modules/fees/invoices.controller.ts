@@ -21,7 +21,10 @@ export class InvoicesController {
   // dynamic ':studentId'/':id' routes below — Nest matches in declaration
   // order, so a dynamic route declared first would swallow these.
 
-  @Roles('BURSAR')
+  // ADMIN too: the Admin's Fee Structure page is the same builder as the
+  // Bursar's, and its "Generate Invoices" button 403'd while this was
+  // BURSAR-only.
+  @Roles('ADMIN', 'BURSAR')
   @Post('generate')
   @ApiOperation({
     summary: 'Bulk-generate invoices for a class+term from its fee structure',

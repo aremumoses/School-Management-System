@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { FormFieldLabel } from '@/components/dashboard/form-field-label';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { listAuditLog } from '@/lib/actions/admin';
 import { AuditLogTable } from './audit-log-table';
 
@@ -8,6 +10,11 @@ const ENTITY_TYPES = [
   'Student', 'Staff', 'Enrollment', 'Score', 'Result', 'Invoice',
   'Payment', 'Fee', 'Attendance', 'Event', 'DisciplinaryAction', 'Document',
 ];
+
+// A plain <select> keeps this filter a real GET form that works without JS;
+// styled to match the app's select triggers.
+const NATIVE_SELECT_CLASS =
+  'h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
 export default async function AuditLogPage({
   searchParams,
@@ -52,107 +59,79 @@ export default async function AuditLogPage({
       />
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-4">
-          <form method="get" className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-40 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="entityType">
-                Entity Type
-              </label>
-              <select
-                id="entityType"
-                name="entityType"
-                defaultValue={params.entityType ?? ''}
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">All</option>
-                {ENTITY_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1 min-w-40 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="actorId">
-                Actor ID (starts with)
-              </label>
-              <input
-                id="actorId"
-                name="actorId"
-                defaultValue={params.actorId ?? ''}
-                placeholder="uuid…"
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="flex-1 min-w-36 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="from">
-                From
-              </label>
-              <input
-                id="from"
-                name="from"
-                type="date"
-                defaultValue={params.from ?? ''}
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="flex-1 min-w-36 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="to">
-                To
-              </label>
-              <input
-                id="to"
-                name="to"
-                type="date"
-                defaultValue={params.to ?? ''}
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Filter
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <form
+        method="get"
+        className="grid gap-4 rounded-xl bg-card p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end dark:ring-1 dark:ring-foreground/10"
+      >
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="entityType">Entity type</FormFieldLabel>
+          <select
+            id="entityType"
+            name="entityType"
+            defaultValue={params.entityType ?? ''}
+            className={NATIVE_SELECT_CLASS}
+          >
+            <option value="">All</option>
+            {ENTITY_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="actorId">Actor ID (starts with)</FormFieldLabel>
+          <Input id="actorId" name="actorId" defaultValue={params.actorId ?? ''} placeholder="uuid…" className="h-10" />
+        </div>
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="from">From</FormFieldLabel>
+          <Input id="from" name="from" type="date" defaultValue={params.from ?? ''} className="h-10" />
+        </div>
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="to">To</FormFieldLabel>
+          <Input id="to" name="to" type="date" defaultValue={params.to ?? ''} className="h-10" />
+        </div>
+        <Button type="submit" className="h-10 px-6 sm:col-span-2 lg:col-span-1">
+          Filter
+        </Button>
+      </form>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          {result.total.toLocaleString()} total entr{result.total === 1 ? 'y' : 'ies'}
-          {result.total > 0 &&
-            ` — showing ${(page - 1) * result.pageSize + 1}–${Math.min(page * result.pageSize, result.total)}`}
-        </span>
-        {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            {page > 1 && (
-              <Link
-                href={pageHref(page - 1)}
-                className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted"
-              >
-                Previous
-              </Link>
-            )}
-            <span className="text-xs">
-              Page {page} of {totalPages}
+      <section className="overflow-hidden rounded-xl bg-card dark:ring-1 dark:ring-foreground/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4 sm:px-6">
+          <h2 className="text-lg font-semibold text-heading">Entries</h2>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {result.total.toLocaleString()} total entr{result.total === 1 ? 'y' : 'ies'}
+          </p>
+        </div>
+
+        <AuditLogTable entries={result.data} />
+
+        {result.total > 0 && (
+          <div className="flex flex-col gap-3 border-t border-border px-5 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <span className="tabular-nums">
+              Showing {(page - 1) * result.pageSize + 1}–
+              {Math.min(page * result.pageSize, result.total)} of {result.total.toLocaleString()}
             </span>
-            {page < totalPages && (
-              <Link
-                href={pageHref(page + 1)}
-                className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted"
-              >
-                Next
-              </Link>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                {page > 1 && (
+                  <Button variant="outline" size="sm" render={<Link href={pageHref(page - 1)} />}>
+                    Previous
+                  </Button>
+                )}
+                <span className="px-1 text-xs tabular-nums">
+                  Page {page} of {totalPages}
+                </span>
+                {page < totalPages && (
+                  <Button variant="outline" size="sm" render={<Link href={pageHref(page + 1)} />}>
+                    Next
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
-
-      <AuditLogTable entries={result.data} />
+      </section>
     </div>
   );
 }

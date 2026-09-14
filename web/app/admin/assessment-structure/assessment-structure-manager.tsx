@@ -78,7 +78,7 @@ export function AssessmentStructureManager({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[22rem] text-sm">
             <thead>
               <tr className="border-b border-border bg-primary/5">

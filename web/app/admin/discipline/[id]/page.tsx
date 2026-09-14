@@ -36,9 +36,9 @@ export default async function AdminIncidentDetailPage({
       <div>
         <Link
           href="/admin/discipline"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary dark:hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" aria-hidden="true" />
+          <ArrowLeft className="size-4" aria-hidden="true" />
           Back to Discipline
         </Link>
         <PageHeader
