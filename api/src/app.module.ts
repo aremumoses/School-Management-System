@@ -43,12 +43,13 @@ import { HostelTransportModule } from './modules/hostel-transport/hostel-transpo
 import { HrModule } from './modules/hr/hr.module';
 import { AtRiskModule } from './modules/at-risk/at-risk.module';
 import { CommentSuggestionModule } from './modules/comment-suggestions/comment-suggestion.module';
-import { validateEnv } from './common/config/env.validation';
+import { envFilePaths, validateEnv } from './common/config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: envFilePaths(),
       validate: validateEnv,
     }),
     // Internal pub/sub for cross-module side effects (e.g. attendance ->

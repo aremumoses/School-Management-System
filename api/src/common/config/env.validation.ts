@@ -1,4 +1,27 @@
+import { existsSync, readdirSync } from 'fs';
+import { join } from 'path';
 import { z } from 'zod';
+
+// Render mounts "Secret Files" at /etc/secrets/<name> rather than exporting
+// them as environment variables, so a .env pasted there is invisible to
+// process.env and boot fails validation with every value "undefined".
+const RENDER_SECRETS_DIR = '/etc/secrets';
+
+/**
+ * Passed to ConfigModule.forRoot's `envFilePath`: the local .env, then any
+ * `*.env` Render Secret File. Real environment variables still win over
+ * every file (ConfigModule never overwrites an existing process.env key), and
+ * where no /etc/secrets exists (local dev, CI) this is just the default `.env`.
+ */
+export function envFilePaths(): string[] {
+  const paths = ['.env'];
+  if (existsSync(RENDER_SECRETS_DIR)) {
+    for (const name of readdirSync(RENDER_SECRETS_DIR).sort()) {
+      if (name.endsWith('.env')) paths.push(join(RENDER_SECRETS_DIR, name));
+    }
+  }
+  return paths;
+}
 
 const envSchema = z.object({
   NODE_ENV: z

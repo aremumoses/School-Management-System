@@ -15,3 +15,8 @@ password.md
 secrets.md
 credentials.md
 *.secrets
+
+# Deploy env files holding real secrets (the repo is public)
+render.env
+vercel.env
+*.env
